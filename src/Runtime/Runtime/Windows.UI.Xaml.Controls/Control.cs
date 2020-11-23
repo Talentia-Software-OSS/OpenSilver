@@ -780,9 +780,9 @@ namespace Windows.UI.Xaml.Controls
             control.TemplateChild = null;
             control.ClearRegisteredNames();
 
-            if (control.INTERNAL_VisualParent != null)
+            if (VisualTreeHelper.GetParent(control) != null)
             {
-                INTERNAL_VisualTreeManager.LayoutManager.MeasureQueue.Add(control);
+                control.InvalidateMeasureInternal();
             }
         }
 
@@ -827,7 +827,7 @@ namespace Windows.UI.Xaml.Controls
         {
             base.INTERNAL_OnAttachedToVisualTree();
 
-            INTERNAL_VisualTreeManager.LayoutManager.MeasureQueue.Add(this);
+            this.InvalidateMeasureInternal();
         }
 
         /// <summary>
