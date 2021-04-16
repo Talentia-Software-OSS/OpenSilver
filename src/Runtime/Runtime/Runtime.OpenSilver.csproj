@@ -1220,5 +1220,8 @@
 	<Import Project="..\..\packages\OpenSilver.WorkInProgress.$(OpenSilverVersion)\build\OpenSilver.WorkInProgress.targets" Condition=" '$(Configuration)|$(Platform)' == 'SL.WorkInProgress|AnyCPU' " />
 	<Import Project="..\..\packages\OpenSilver.UWPCompatible.$(OpenSilverVersion)\build\OpenSilver.UwpCompatible.targets" Condition=" '$(Configuration)|$(Platform)' == 'UWP|AnyCPU' " />
 	<Import Project="..\..\packages\OpenSilver.UWPCompatible.$(OpenSilverVersion)\build\OpenSilver.UwpCompatible.targets" Condition=" '$(Configuration)|$(Platform)' == 'UWP.WorkInProgress|AnyCPU' " />
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	  <Exec Command="xcopy /y &quot;$(TargetDir)$(TargetName).dll&quot; &quot;C:\Users\$(Username)\.nuget\packages\opensilver.workinprogress\1.0.0-alpha-018\lib\netstandard2.0\&quot;&#xD;&#xA;xcopy /y &quot;$(TargetDir)$(TargetName).pdb&quot; &quot;C:\Users\$(Username)\.nuget\packages\opensilver.workinprogress\1.0.0-alpha-018\lib\netstandard2.0\&quot;" />
+	</Target>
 
 </Project>

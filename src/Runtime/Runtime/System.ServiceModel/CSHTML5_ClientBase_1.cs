@@ -827,6 +827,57 @@ EndOperationDelegate endDelegate, SendOrPostCallback completionCallback)
                     soapVersion);
             }
 
+            internal object CallWebMethodBeginEnd(string webMethodName,
+                Type interfaceType,
+                Type methodReturnType,
+                IDictionary<string, object> originalRequestObject,
+                string soapVersion)
+            {
+                bool isXmlSerializer;
+                Dictionary<string, string> headers;
+                string request;
+                PrepareRequest(
+                    webMethodName,
+                    "Begin" + webMethodName,
+                    interfaceType,
+                    methodReturnType,
+                    "",
+                    originalRequestObject,
+                    soapVersion,
+                    out isXmlSerializer,
+                    out headers,
+                    out request);
+
+#if WORKINPROGRESS
+                Uri address = INTERNAL_UriHelper.EnsureAbsoluteUri(_addressOfService);
+#else
+                Uri address = new Uri(_addressOfService);
+#endif
+
+                // Make the actual web service call
+                string response = _webRequestHelper_JSVersion.MakeRequest(
+                    address,
+                    "POST",
+                    this,
+                    headers,
+                    request,
+                    null,
+                    false,
+                    Application.Current.Host.Settings.DefaultSoapCredentialsMode);
+
+                return ReadAndPrepareResponse(
+                    response,
+                    interfaceType,
+                    methodReturnType,
+                    null,
+                    faultException =>
+                    {
+                        throw faultException;
+                    },
+                    isXmlSerializer,
+                    soapVersion);
+            }
+
             private static bool IsXmlSerializer(
                 string webMethodName, 
                 Type methodReturnType,
@@ -1431,7 +1482,9 @@ EndOperationDelegate endDelegate, SendOrPostCallback completionCallback)
                     // they should always be the two outermost elements
                     if (soapVersion == "1.1")
                     {
-                        xElement = xElement.Elements().FirstOrDefault() ?? xElement; // move inside of the <Enveloppe> tag
+                        // xElement = xElement.Elements().FirstOrDefault() ?? xElement; // move inside of the <Enveloppe> tag
+                        //xElement = xElement.Elements().Skip(1).FirstOrDefault() ?? xElement; // modification to skip header and access Body
+                        xElement = xElement.Elements().FirstOrDefault(e => e.Name.LocalName == "Body") ?? xElement; // modification to skip header and access Body
                     }
                     else
                     {

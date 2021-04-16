@@ -67,12 +67,28 @@ namespace System.ServiceModel
         {
             var webMethodsCaller = new CSHTML5_ClientBase<INTERFACE_TYPE>.WebMethodsCaller(endpointAddress);
 
-            return (RETURN_TYPE)webMethodsCaller.CallWebMethod(
-                webMethodName, 
-                typeof(INTERFACE_TYPE), 
-                typeof(RETURN_TYPE), 
-                requestParameters, 
-                soapVersion);
+            RETURN_TYPE res;
+
+            try
+            {
+                res = (RETURN_TYPE)webMethodsCaller.CallWebMethod(
+                    webMethodName,
+                    typeof(INTERFACE_TYPE),
+                    typeof(RETURN_TYPE),
+                    requestParameters,
+                    soapVersion);
+            }
+            catch (MissingMethodException)
+            {
+                res = (RETURN_TYPE)webMethodsCaller.CallWebMethodBeginEnd(
+                    webMethodName,
+                    typeof(INTERFACE_TYPE),
+                    typeof(RETURN_TYPE),
+                    requestParameters,
+                    soapVersion);
+            }
+
+            return res;
         }
 
         public static IAsyncResult BeginCallWebMethod<INTERFACE_TYPE>(
