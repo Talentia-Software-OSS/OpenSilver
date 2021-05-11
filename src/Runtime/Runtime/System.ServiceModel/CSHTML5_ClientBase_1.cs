@@ -1141,7 +1141,7 @@ EndOperationDelegate endDelegate, SendOrPostCallback completionCallback)
             }
 
 #if OPENSILVER
-            private FaultException GetFaultException(string response)
+            private FaultException GetFaultException(string response, bool useXmlSerializerFormat)
             {
                 FaultException fe = null;
                 const string ns = "http://schemas.xmlsoap.org/soap/envelope/";
@@ -1157,7 +1157,7 @@ EndOperationDelegate endDelegate, SendOrPostCallback completionCallback)
                     if (detailElement != null)
                     {
                         detailElement = detailElement.Elements().First();
-                        Type detailType = ResolveType(detailElement.Name);
+                        Type detailType = ResolveType(detailElement.Name, useXmlSerializerFormat);
 
                         DataContractSerializerCustom serializer =
                             new DataContractSerializerCustom(detailType, false);
@@ -1183,7 +1183,7 @@ EndOperationDelegate endDelegate, SendOrPostCallback completionCallback)
                 return fe ?? new FaultException();
             }
 
-            private static Type ResolveType(XName name)
+            private static Type ResolveType(XName name, bool useXmlSerializerFormat)
             {
                 Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
                 for (int i = 0; i < assemblies.Length; ++i)
@@ -1207,7 +1207,7 @@ EndOperationDelegate endDelegate, SendOrPostCallback completionCallback)
                             {
                                 bool namespaceMatch = attr.IsNamespaceSetExplicitly ?
                                     attr.Namespace == name.NamespaceName :
-                                    DataContractSerializer_Helpers.GetDefaultNamespace(type.Namespace, useXmlSerializerFormat: false) == name.NamespaceName;
+                                    DataContractSerializer_Helpers.GetDefaultNamespace(type.Namespace, useXmlSerializerFormat) == name.NamespaceName;
 
                                 if (namespaceMatch)
                                     return type;
@@ -1363,7 +1363,7 @@ EndOperationDelegate endDelegate, SendOrPostCallback completionCallback)
                     }
                     if (m != -1)
                     {
-                        FaultException fe = GetFaultException(responseAsString);
+                        FaultException fe = GetFaultException(responseAsString, isXmlSerializer);
                         raiseFaultException(fe);
                         return null;
                     }
