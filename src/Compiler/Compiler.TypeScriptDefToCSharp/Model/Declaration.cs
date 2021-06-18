@@ -63,7 +63,14 @@ namespace TypeScriptDefToCSharp.Model
 
         public string SkippedFullName(string sep, int count)
         {
-            return string.Join(sep, this.FullName(sep).Split(sep.ToCharArray()).Skip(count));
+            string[] parts = this.FullName(sep).Split(sep.ToCharArray());
+            IEnumerable<string> values = parts.Skip(count);
+
+            // Support calling functions that are in namespaces: skip the last part (fake Class-suffixed name)
+            if (this.Name == this.Super.Name + "Class")
+                values = values.Take(parts.Length - 1 - count);
+
+            return string.Join(sep, values);
         }
 
         public TContainer FirstAncestor<TContainer>()
