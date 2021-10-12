@@ -77,6 +77,8 @@ namespace Windows.UI.Xaml.Controls
             set { }
         }
 
+        internal override bool EnablePointerEventsCore => true;
+
         /// <summary>
         /// Initializes a new instance of the ComboBox class.
         /// </summary>
