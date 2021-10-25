@@ -976,7 +976,7 @@ namespace Windows.UI.Xaml
 
             // Call SizeChanged event handlers
             if (!this.IsCustomLayoutRoot)
-                this.HandleSizeChanged($"{VisualBounds.Width}|{VisualBounds.Height}");
+                this.HandleSizeChanged(new Size(VisualBounds.Width, VisualBounds.Height));
 
             if (isFirstRendering)
             {
