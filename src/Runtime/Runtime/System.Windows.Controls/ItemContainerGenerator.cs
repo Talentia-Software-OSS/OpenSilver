@@ -96,12 +96,9 @@ namespace Windows.UI.Xaml.Controls
         /// <returns>The container at the given index, or null if the index is negative or above the amount of containers.</returns>
         public DependencyObject ContainerFromIndex(int index)
         {
-            if (index > -1 && _containers.Count > index)
-            {
-                return (DependencyObject)_containers[index];
-            }
-            else
-                return null;
+            object o = null;
+            _containers.TryGetValue(index, out o);
+            return o as DependencyObject;
         }
 
         public int IndexFromContainer(DependencyObject container)
