@@ -478,32 +478,23 @@ document.setPosition = function(id, left, top, bSetAbsolutePosition, bSetZeroMar
     }
 }
 
-document.measureTextBlock = function(text, fontSize, fontFamily, fontStyle, fontWeight, textWrapping, padding, width, maxWidth) {
+document.measureTextBlock = function(uid, text, textWrapping, padding, width, maxWidth) {
     var element = document.measureTextBlockElement;
-    if (element)
+	var elToMeasure = document.getElementById(uid);
+    if (element && elToMeasure)
     {
+		var computedStyle = getComputedStyle(elToMeasure);
+
         var runElement = element.firstElementChild;
         if (runElement != null) {
             runElement.innerText = text;
-            runElement.style.fontSize = fontSize;
-            runElement.style.fontWeight = fontWeight;
         }
 
-        if (fontSize.length > 0) {
-            element.style.fontSize = fontSize;
-        }
-        if (fontFamily.length > 0) {
-            if (fontFamily === "-") {
-                fontFamily = "";
-            }
-            element.style.fontFamily = fontFamily;
-        }
-        if (fontStyle.length > 0) {
-            element.style.fontStyle = fontStyle;
-        }
-        if (fontWeight.length > 0) {
-            element.style.fontWeight = fontWeight;
-        }
+        element.style.fontSize = computedStyle.fontSize;
+        element.style.fontWeight = computedStyle.fontWeight;
+        element.style.fontFamily = computedStyle.fontFamily;
+		element.style.fontStyle = computedStyle.fontStyle;
+
         if (textWrapping.length > 0) {
             element.style.whiteSpace = textWrapping;
         }
