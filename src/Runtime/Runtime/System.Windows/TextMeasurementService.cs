@@ -31,7 +31,6 @@ namespace Windows.UI.Xaml
                      double maxWidth);
         
         Size MeasureTextBlock(string uid,
-                              string text,
                               TextWrapping wrapping, 
                               Thickness padding, 
                               double maxWidth);
@@ -182,7 +181,6 @@ namespace Windows.UI.Xaml
         }
 
         public Size MeasureTextBlock(string uid,
-                                     string text,                                     
                                      TextWrapping wrapping, 
                                      Thickness padding, 
                                      double maxWidth)
@@ -192,11 +190,6 @@ namespace Windows.UI.Xaml
                 return new Size();
             }
 
-#if OPENSILVER
-            string strText = String.IsNullOrEmpty(text) ? "A" : INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(text);
-#elif BRIDGE
-            string strText = String.IsNullOrEmpty(text) ? "A" : text;
-#endif
             string strTextWrapping = wrapping == TextWrapping.Wrap ? "pre-wrap" : "pre";
             string strPadding = $"{padding.Top.ToInvariantString()}px {padding.Right.ToInvariantString()}px {padding.Bottom.ToInvariantString()}px {padding.Left.ToInvariantString()}px";
             string strWidth = "";
@@ -222,7 +215,7 @@ namespace Windows.UI.Xaml
             else
                 savedTextBlockPadding = padding;
 
-            string javaScriptCodeToExecute = $@"document.measureTextBlock(""{uid}"",""{strText}"",""{strTextWrapping}"",""{strPadding}"",""{strWidth}"",""{strMaxWidth}"")";
+            string javaScriptCodeToExecute = $@"document.measureTextBlock(""{uid}"",""{strTextWrapping}"",""{strPadding}"",""{strWidth}"",""{strMaxWidth}"")";
 #if OPENSILVER
             string strTextSize = Convert.ToString(OpenSilver.Interop.ExecuteJavaScript(javaScriptCodeToExecute));
 #elif BRIDGE
