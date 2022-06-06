@@ -237,6 +237,80 @@ namespace CSHTML5
             return objectReference;
         }
 
+#if BRIDGE
+        [Bridge.Template("null")]
+#endif
+        internal static void ExecuteJavaScript_SimulatorImplementationVoid(string javascript, bool runAsynchronously, bool noImpactOnPendingJSCode = false, params object[] variables)
+        {
+            //---------------
+            // Due to the fact that it is not possible to pass JavaScript objects between the simulator JavaScript context
+            // and the C# context, we store the JavaScript objects in a global dictionary inside the JavaScript context.
+            // This dictionary is named "jsObjRef". It associates a unique integer ID to each JavaScript
+            // object. In C# we only manipulate those IDs by manipulating instances of the "JSObjectReference" class.
+            // When we need to re-use those JavaScript objects, the C# code passes to the JavaScript context the ID
+            // of the object, so that the JavaScript code can retrieve the JavaScript object instance by using the 
+            // aforementioned dictionary.
+            //---------------
+
+            // Verify the arguments:
+            if (noImpactOnPendingJSCode && runAsynchronously)
+                throw new ArgumentException("You cannot set both 'noImpactOnPendingJSCode' and 'runAsynchronously' to True. The 'noImpactOnPendingJSCode' only has meaning when running synchronously.");
+
+            // Make sure the JS to C# interop is set up:
+            if (!IsJavaScriptCSharpInteropSetUp)
+            {
+#if OPENSILVER
+                if (Interop.IsRunningInTheSimulator_WorkAround)
+                {
+#endif
+                    // Adding a property to the JavaScript "window" object:
+                    dynamic jsWindow = INTERNAL_HtmlDomManager.ExecuteJavaScriptWithResult("window");
+                    jsWindow.SetProperty("onCallBack", new OnCallBack(CallbacksDictionary));
+#if OPENSILVER
+                }
+                else
+                {
+                    OnCallBack.SetCallbacksDictionary(CallbacksDictionary);
+                }
+#endif
+                IsJavaScriptCSharpInteropSetUp = true;
+            }
+
+            string unmodifiedJavascript = javascript;
+
+            // If the javascript code has references to previously obtained JavaScript objects,
+            // we replace those references with calls to the "document.jsObjRef"
+            // dictionary.
+            // Note: we iterate in reverse order because, when we replace ""$" + i.ToString()", we
+            // need to replace "$10" before replacing "$1", otherwise it thinks that "$10" is "$1"
+            // followed by the number "0". To reproduce the issue, call "ExecuteJavaScript" passing
+            // 10 arguments and using "$10".
+            for (int i = variables.Length - 1; i >= 0; i--)
+            {
+                javascript = javascript.Replace("$" + i.ToString(), GetVariableStringForJS(variables[i]));
+            }
+
+            UnmodifiedJavascriptCalls.Add(unmodifiedJavascript);
+
+            // Change the JS code to call ShowErrorMessage in case of error:
+            string errorCallBackId = IndexOfNextUnmodifiedJSCallInList.ToString();
+            ++IndexOfNextUnmodifiedJSCallInList;
+
+            // Surround the javascript code with some code that will store the
+            // result into the "document.jsObjRef" for later
+            // use in subsequent calls to this method
+            int referenceId = ReferenceIDGenerator.GenerateId();
+            javascript = $"document.callScriptSafe(\"{referenceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",\"{INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(javascript)}\",{errorCallBackId})";            
+            if (!runAsynchronously)
+            {
+                INTERNAL_HtmlDomManager.ExecuteJavaScriptVoid(javascript, noImpactOnPendingJSCode: noImpactOnPendingJSCode);
+            }
+            else
+            {
+                INTERNAL_HtmlDomManager.ExecuteJavaScript(javascript);
+            }
+        }
+
         internal static void ResetLoadedFilesDictionaries()
         {
             _pendingJSFile.Clear();

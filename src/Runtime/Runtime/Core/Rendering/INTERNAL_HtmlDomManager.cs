@@ -1186,6 +1186,20 @@ parentElement.appendChild(child);";
 
 #if !BRIDGE
         [JSIgnore]
+
+#else
+        [External]
+#endif
+        public static void ExecuteJavaScriptVoid(string javaScriptToExecute, string commentForDebugging = null, bool noImpactOnPendingJSCode = false)
+        {
+            INTERNAL_SimulatorExecuteJavaScript.ExecuteJavaScriptSyncVoid(
+               javaScriptToExecute,
+               INTERNAL_SimulatorExecuteJavaScript.EnableInteropLogging ? "(Called from HtmlDomManager.ExecuteJavaScriptWithResult)" + (commentForDebugging != null ? commentForDebugging : "") : "",
+               noImpactOnPendingJSCode);
+        }
+
+#if !BRIDGE
+        [JSIgnore]
 #else
         [External]
 #endif

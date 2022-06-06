@@ -69,12 +69,43 @@ namespace CSHTML5.Internal
                         "// [START OF PENDING JAVASCRIPT]",
                         aggregatedPendingJavaScriptCode,
                         "// [END OF PENDING JAVASCRIPT]" + Environment.NewLine,
+                        $"return {javaScriptToExecute};"
+                    });
+                }
+
+                else {
+                    javaScriptToExecute = $"return {javaScriptToExecute};";
+                }
+            }
+
+            return PerformActualInteropCall(javaScriptToExecute, "SYNC");
+        }
+
+#if !BRIDGE
+        [JSIgnore]
+#endif
+        internal static void ExecuteJavaScriptSyncVoid(string javaScriptToExecute, string commentForDebugging = null, bool noImpactOnPendingJSCode = false)
+        {
+            if (!noImpactOnPendingJSCode)
+            {
+                if (EnableInteropLogging)
+                    AddCommentsForDebuggingIfAny(ref javaScriptToExecute, commentForDebugging);
+
+                string aggregatedPendingJavaScriptCode = ReadAndClearAggregatedPendingJavaScriptCode();
+
+                if (!string.IsNullOrWhiteSpace(aggregatedPendingJavaScriptCode))
+                {
+                    javaScriptToExecute = string.Join(Environment.NewLine, new List<string>
+                    {
+                        "// [START OF PENDING JAVASCRIPT]",
+                        aggregatedPendingJavaScriptCode,
+                        "// [END OF PENDING JAVASCRIPT]" + Environment.NewLine,
                         javaScriptToExecute
                     });
                 }
             }
 
-            return PerformActualInteropCall(javaScriptToExecute, "SYNC");
+            PerformActualInteropCallVoid(javaScriptToExecute, "SYNC");
         }
 
         /// <summary>
@@ -166,7 +197,7 @@ namespace CSHTML5.Internal
                                 }
                             })
                         );
-                        CSHTML5.INTERNAL_InteropImplementation.ExecuteJavaScript_SimulatorImplementation(
+                        CSHTML5.INTERNAL_InteropImplementation.ExecuteJavaScript_SimulatorImplementationVoid(
                             javascript: $"setTimeout({action}, 1)",
                             runAsynchronously: false,
                             noImpactOnPendingJSCode: true
@@ -174,13 +205,13 @@ namespace CSHTML5.Internal
                     }
                 }
 #endif
-                                }
+            }
             else
             {
 #if OPTIMIZATION_LOG
                 Console.WriteLine("[OPTIMIZATION] Direct call");
 #endif
-                PerformActualInteropCall(javaScriptToExecute, "ASYNC DISABLED");
+                PerformActualInteropCallVoid(javaScriptToExecute, "ASYNC DISABLED");
             }
         }
 
@@ -259,6 +290,43 @@ namespace CSHTML5.Internal
                     return INTERNAL_Simulator.DynamicJavaScriptExecutionHandler.ExecuteJavaScriptWithResult(javaScriptToExecute);
                 else
                     return INTERNAL_Simulator.JavaScriptExecutionHandler.ExecuteJavaScriptWithResult(javaScriptToExecute);
+
+#else
+                return ((dynamic)INTERNAL_Simulator.JavaScriptExecutionHandler).ExecuteJavaScriptWithResult(javaScriptToExecute);
+#endif
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException("Unable to execute the following JavaScript code: " + Environment.NewLine + javaScriptToExecute, ex);
+            }
+        }
+
+        static void PerformActualInteropCallVoid(string javaScriptToExecute, string reasonForPerformingTheCallNow)
+        {
+            if (EnableInteropLogging)
+            {
+                javaScriptToExecute = "//---- START INTEROP (" + reasonForPerformingTheCallNow + ") ----"
+                    + Environment.NewLine
+                    + javaScriptToExecute
+                    + Environment.NewLine
+                    + "//---- END INTEROP (" + reasonForPerformingTheCallNow + ") ----";
+            }
+
+            try
+            {
+#if CSHTML5BLAZOR
+                if (EnableInteropLogging)
+                {
+                    global::System.Diagnostics.Debug.WriteLine(javaScriptToExecute);
+                }
+
+                // OpenSilver Version has two distincts JavaScriptExecutionHandler:
+                // - DynamicJavaScriptExecutionHandler is a dynamic typed JavaScriptExecutionHandler setted by the Emulator  
+                // - JavaScriptExecutionHandler        is a static typed JavaScriptExecutionHandler used in the browser version
+                if (Interop.IsRunningInTheSimulator_WorkAround) // this is the JavaScriptHandler injected by the Emulator
+                    INTERNAL_Simulator.DynamicJavaScriptExecutionHandler.ExecuteJavaScript(javaScriptToExecute);
+                else
+                    INTERNAL_Simulator.JavaScriptExecutionHandler.ExecuteJavaScript(javaScriptToExecute);
 
 #else
                 return ((dynamic)INTERNAL_Simulator.JavaScriptExecutionHandler).ExecuteJavaScriptWithResult(javaScriptToExecute);

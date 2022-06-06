@@ -89,12 +89,12 @@ namespace CSHTML5.Internal
             {
                 fontUri = fontUri.Substring(1);
             }
-            CSHTML5.Interop.ExecuteJavaScript(@"var newStyle = document.createElement('style');
+            CSHTML5.Interop.ExecuteJavaScriptAsyncVoid(@"var newStyle = document.createElement('style');
 newStyle.appendChild(document.createTextNode(""\
 @font-face {\
     font-family: '"" + $1 + ""';\
     src: url('"" + $0 + ""')\
-}}\
+}\
 ""));
 document.body.appendChild(newStyle);", fontUri, fontName); //Note: we used src: url(...) because src: local(...) does not seem to work. Also, we added the css style to the body instead of the header (which is what I found everywhere non the internet) because it didn't seem to work for me.
 

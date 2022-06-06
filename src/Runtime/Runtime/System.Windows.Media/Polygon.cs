@@ -157,7 +157,7 @@ namespace Windows.UI.Xaml.Shapes
 			object context = CSHTML5.Interop.ExecuteJavaScriptAsync(@"$0.getContext('2d')", _canvasDomElement);
 
 			//we remove the previous drawing:
-			CSHTML5.Interop.ExecuteJavaScriptAsync("$0.clearRect(0,0, $1, $2)", context, shapeActualSize.Width, shapeActualSize.Height);
+			CSHTML5.Interop.ExecuteJavaScriptAsyncVoid("$0.clearRect(0,0, $1, $2)", context, shapeActualSize.Width, shapeActualSize.Height);
 
 			double opacity = Stroke == null ? 1 : Stroke.Opacity;
 			object strokeValue = GetHtmlBrush(this, context, Stroke, opacity, minX, minY, maxX, maxY, horizontalMultiplicator, verticalMultiplicator, xOffsetToApplyBeforeMultiplication, yOffsetToApplyBeforeMultiplication, shapeActualSize);
@@ -165,23 +165,23 @@ namespace Windows.UI.Xaml.Shapes
 
 			if (fillValue != null)
 			{
-				CSHTML5.Interop.ExecuteJavaScriptAsync(@"$0.fillStyle = $1", context, fillValue);
+				CSHTML5.Interop.ExecuteJavaScriptAsyncVoid(@"$0.fillStyle = $1", context, fillValue);
 			}
 			else
 			{
 				// If fillValue is not set it will be black.
-				CSHTML5.Interop.ExecuteJavaScriptAsync(@"$0.fillStyle = 'transparent'", context);
+				CSHTML5.Interop.ExecuteJavaScriptAsyncVoid(@"$0.fillStyle = 'transparent'", context);
 			}
 
 			INTERNAL_ShapesDrawHelpers.PrepareLines(_canvasDomElement, Points, StrokeThickness, true);
 
 			if (strokeValue != null)
-				CSHTML5.Interop.ExecuteJavaScriptAsync(@"$0.strokeStyle = $1", context, strokeValue);
+				CSHTML5.Interop.ExecuteJavaScriptAsyncVoid(@"$0.strokeStyle = $1", context, strokeValue);
 
-			CSHTML5.Interop.ExecuteJavaScriptAsync("$0.lineWidth = $1", context, StrokeThickness.ToString());
+			CSHTML5.Interop.ExecuteJavaScriptAsyncVoid("$0.lineWidth = $1", context, StrokeThickness.ToString());
 			if (Stroke != null && StrokeThickness > 0)
 			{
-				CSHTML5.Interop.ExecuteJavaScriptAsync("$0.stroke()", context);
+				CSHTML5.Interop.ExecuteJavaScriptAsyncVoid("$0.stroke()", context);
 			}
 		}
 	}

@@ -82,6 +82,19 @@ namespace CSHTML5
         }
 
         /// <summary>
+        /// Allows calling JavaScript code from within C#. The call will be asynchronous when run in the Simulator.
+        /// </summary>
+        /// <param name="javascript">The JavaScript code to execute.</param>
+        /// <param name="variables">The objects to use inside the JavaScript call.</param>
+#if BRIDGE
+        [Bridge.Template]
+#endif
+        public static void ExecuteJavaScriptAsyncVoid(string javascript, params object[] variables)
+        {
+            OpenSilver.Interop.ExecuteJavaScriptAsyncVoid(javascript, variables);
+        }
+
+        /// <summary>
         /// Allows calling JavaScript code from within C#.
         /// </summary>
         /// <param name="javascript">The JavaScript code to execute.</param>
