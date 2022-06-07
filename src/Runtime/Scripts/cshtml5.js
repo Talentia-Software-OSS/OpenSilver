@@ -347,12 +347,22 @@ document.getCallbackFunc = function (callbackId, sync, sliceArguments) {
 
 document.callScriptSafe = function (referenceId, javaScriptToExecute, errorCallBackId) {
     try {
-        document.jsObjRef[referenceId] = eval(javaScriptToExecute); 
+        document.jsObjRef[referenceId] = javaScriptToExecute(); 
         return document.jsObjRef[referenceId];
     } catch (error) {
+        console.error(javaScriptToExecute);
         document.errorCallback(error, errorCallBackId); 
     }
 }
+
+document.callScriptSafeVoid = function (referenceId, javaScriptToExecute, errorCallBackId) {
+    try {
+        document.jsObjRef[referenceId] = javaScriptToExecute(); 
+    } catch (error) {
+		console.error(javaScriptToExecute);
+        document.errorCallback(error, errorCallBackId); 
+    }
+};
 
 document.errorCallback = function (error, IndexOfNextUnmodifiedJSCallInList) {
 	const idWhereErrorCallbackArgsAreStored = "callback_args_" + document.callbackCounterForSimulator++;

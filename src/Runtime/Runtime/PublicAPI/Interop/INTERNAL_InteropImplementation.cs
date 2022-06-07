@@ -215,7 +215,8 @@ namespace CSHTML5
             // result into the "document.jsObjRef" for later
             // use in subsequent calls to this method
             int referenceId = ReferenceIDGenerator.GenerateId();
-            javascript = $"document.callScriptSafe(\"{referenceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",\"{INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(javascript)}\",{errorCallBackId})";
+            //javascript = $"document.callScriptSafe(\"{referenceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",\"{INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(javascript)}\",{errorCallBackId})";
+            javascript = $"document.callScriptSafe(\"{referenceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",function() {{ return {javascript.TrimStart()} }},{errorCallBackId})";
 
             // Execute the javascript code:
             object value = null;
@@ -300,7 +301,8 @@ namespace CSHTML5
             // result into the "document.jsObjRef" for later
             // use in subsequent calls to this method
             int referenceId = ReferenceIDGenerator.GenerateId();
-            javascript = $"document.callScriptSafe(\"{referenceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",\"{INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(javascript)}\",{errorCallBackId})";            
+            //javascript = $"document.callScriptSafeVoid(\"{referenceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",\"{INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(javascript)}\",{errorCallBackId})";            
+            javascript = $"document.callScriptSafeVoid(\"{referenceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",function() {{ {javascript.TrimStart()} }},{errorCallBackId})";
             if (!runAsynchronously)
             {
                 INTERNAL_HtmlDomManager.ExecuteJavaScriptVoid(javascript, noImpactOnPendingJSCode: noImpactOnPendingJSCode);
@@ -434,7 +436,7 @@ namespace CSHTML5
                 _pendingJSFile.Add(html5Path, new List<Tuple<Action, Action>> { new Tuple<Action, Action>(callbackOnSuccess, callbackOnFailure) });
                 string sSuccessAction = GetVariableStringForJS((Action<object>)LoadJavaScriptFileSuccess);
                 string sFailureAction = GetVariableStringForJS((Action<object>)LoadJavaScriptFileFailure);
-                CSHTML5.Interop.ExecuteJavaScript(
+                OpenSilver.Interop.ExecuteJavaScriptVoid(
     $@"// Add the script tag to the head
 var filePath = {GetVariableStringForJS(html5Path)};
 var head = document.getElementsByTagName('head')[0];
@@ -516,7 +518,7 @@ head.appendChild(script);");
 
             string sHtml5Path = GetVariableStringForJS(html5Path);
             string sCallback = GetVariableStringForJS(callback);
-            CSHTML5.Interop.ExecuteJavaScript(
+            OpenSilver.Interop.ExecuteJavaScriptVoid(
 $@"// Add the link tag to the head
 var head = document.getElementsByTagName('head')[0];
 var link = document.createElement('link');

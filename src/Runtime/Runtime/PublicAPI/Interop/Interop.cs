@@ -52,6 +52,20 @@ namespace OpenSilver
 #if BRIDGE
         [Bridge.Template]
 #endif
+        public static void ExecuteJavaScriptVoid(string javascript, params object[] variables)
+        {
+            CSHTML5.INTERNAL_InteropImplementation.ExecuteJavaScript_SimulatorImplementationVoid(javascript, runAsynchronously: false, variables: variables);
+        }
+
+        /// <summary>
+        /// Allows calling JavaScript code from within C#.
+        /// </summary>
+        /// <param name="javascript">The JavaScript code to execute.</param>
+        /// <param name="variables">The objects to use inside the JavaScript call.</param>
+        /// <returns>The result, if any, of the JavaScript call.</returns>
+#if BRIDGE
+        [Bridge.Template]
+#endif
         public static object ExecuteJavaScript(string javascript, params object[] variables)
         {
             return CSHTML5.INTERNAL_InteropImplementation.ExecuteJavaScript_SimulatorImplementation(javascript, runAsynchronously: false, variables: variables);
