@@ -12,8 +12,11 @@
 *  
 \*====================================================================================*/
 
+using System.ComponentModel;
+using OpenSilver.Internal;
 
 #if MIGRATION
+using System.Windows.Threading;
 namespace System.Windows.Controls.Primitives
 #else
 using System;
@@ -47,6 +50,8 @@ namespace Windows.UI.Xaml.Controls.Primitives
         ButtonBase _verticalSmallIncrease;
         ButtonBase _verticalLargeDecrease;
         ButtonBase _verticalLargeIncrease;
+        private DebounceDispatcher _debounceDispatcher;
+
 
         /// <summary>
         /// Initializes a new instance of the ScrollBar class.
@@ -73,6 +78,54 @@ namespace Windows.UI.Xaml.Controls.Primitives
         void ScrollBar_Unloaded(object sender, RoutedEventArgs e)
         {
             _controlWasProperlyDrawn = false;
+        }
+
+        //[EditorBrowsable(EditorBrowsableState.Advanced)]
+        public static readonly DependencyProperty DebounceProperty =
+            DependencyProperty.RegisterAttached(
+                nameof(Debounce),
+                typeof(TimeSpan),
+                typeof(ScrollBar),
+                new PropertyMetadata(GetDefaultDebounce()));
+
+        private static TimeSpan GetDefaultDebounce()
+        {
+            Application app = Application.Current;
+            if (app != null)
+            {
+                return app.Host.Settings.ScrollDebounce;
+            }
+
+            return TimeSpan.Zero;
+        }
+
+        //[EditorBrowsable(EditorBrowsableState.Advanced)]
+        public TimeSpan Debounce
+        {
+            get => (TimeSpan)GetValue(DebounceProperty);
+            set => SetValue(DebounceProperty, value);
+        }
+
+        //[EditorBrowsable(EditorBrowsableState.Advanced)]
+        public static TimeSpan GetDebounce(FrameworkElement fe)
+        {
+            if (fe is null)
+            {
+                throw new ArgumentNullException(nameof(fe));
+            }
+
+            return (TimeSpan)fe.GetValue(DebounceProperty);
+        }
+
+        //[EditorBrowsable(EditorBrowsableState.Advanced)]
+        public static void SetDebounce(FrameworkElement fe, TimeSpan debounce)
+        {
+            if (fe is null)
+            {
+                throw new ArgumentNullException(nameof(fe));
+            }
+
+            fe.SetValue(DebounceProperty, debounce);
         }
 
 #if MIGRATION
@@ -232,8 +285,30 @@ namespace Windows.UI.Xaml.Controls.Primitives
             if (newValue != this.Value)
             {
                 this.SetCurrentValue(RangeBase.ValueProperty, newValue); // Note: we do not use "this.Value = newValue" because it deletes any bindings that the user may have set to the scrollbar with <ScrollBar Value="{Binding...}"/>.
-                if (this.Scroll != null)
-                    this.Scroll(this, new ScrollEventArgs(newValue, scrollEventType));
+                OnScroll(newValue, scrollEventType);
+            }
+        }
+
+        private void OnScroll(double value, ScrollEventType scrollEventType)
+        {
+            TimeSpan debounce = Debounce;
+            if (debounce > TimeSpan.Zero 
+                && scrollEventType != ScrollEventType.EndScroll 
+                && scrollEventType != ScrollEventType.First
+                && scrollEventType != ScrollEventType.Last)
+            {
+                if (_debounceDispatcher == null)
+                {
+                    _debounceDispatcher = new DebounceDispatcher();
+                }
+
+                _debounceDispatcher.Debounce(
+                    debounce,
+                    () => Scroll?.Invoke(this, new ScrollEventArgs(value, scrollEventType)));
+            }
+            else
+            {
+                Scroll?.Invoke(this, new ScrollEventArgs(value, scrollEventType));
             }
         }
 
@@ -266,8 +341,7 @@ namespace Windows.UI.Xaml.Controls.Primitives
                 _horizontalLargeIncrease.IsHitTestVisible = true;
 
             // Call the "Scroll" event passing the "EndScroll" argument:
-            if (this.Scroll != null)
-                this.Scroll(this, new ScrollEventArgs(this.Value, ScrollEventType.EndScroll));
+            OnScroll(Value, ScrollEventType.EndScroll);
         }
 
         void ChangeValueBasedOnPointerMovement(double pointerMovementInPixels)
@@ -309,8 +383,7 @@ namespace Windows.UI.Xaml.Controls.Primitives
                     UpdateThumbPositionAndSize(totalControlSizeInMainDirection);
 
                     // Call the "Scroll" event:
-                    if (this.Scroll != null)
-                        this.Scroll(this, new ScrollEventArgs(newValue, ScrollEventType.ThumbTrack));
+                    OnScroll(newValue, ScrollEventType.ThumbTrack);
                 }
             }
         }

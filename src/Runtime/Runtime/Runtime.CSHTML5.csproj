@@ -81,6 +81,7 @@
     <Compile Include="OpenSilver\Internal\ObjectExtensions.cs" />
     <Compile Include="OpenSilver\Internal\Parsers.cs" />
     <Compile Include="OpenSilver\Internal\ResizeObserver.cs" />
+    <Compile Include="OpenSilver\Internal\DebounceDispatcher.cs" />
     <Compile Include="OpenSilver\Internal\TokenizerHelper.cs" />
     <Compile Include="OpenSilver\Internal\Xaml\RuntimeHelpers.cs" />
     <Compile Include="OpenSilver\Internal\Xaml\IXamlComponentFactory.cs" />
