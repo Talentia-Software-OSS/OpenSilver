@@ -161,7 +161,7 @@ namespace Windows.UI.Xaml.Media.Animation
             };
         }
 
-        static void StartAnimation(DependencyObject target, CSSEquivalent cssEquivalent, double? from, object to, Duration Duration, EasingFunctionBase easingFunction, string visualStateGroupName, DependencyProperty dependencyProperty, Action callbackForWhenfinished = null)
+        private void StartAnimation(DependencyObject target, CSSEquivalent cssEquivalent, double? from, object to, Duration Duration, EasingFunctionBase easingFunction, string visualStateGroupName, DependencyProperty dependencyProperty, Action callbackForWhenfinished = null)
         {
             if (cssEquivalent.Name != null && cssEquivalent.Name.Count != 0)
             {
@@ -201,7 +201,14 @@ namespace Windows.UI.Xaml.Media.Animation
                                 CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"{sNewObj}[""{csspropertyName}""] = [{sCssValue}, {sFrom}];");
                             }
                         }
-                        AnimationHelpers.CallVelocity(cssEquivalent.DomElement, Duration, easingFunction, visualStateGroupName, callbackForWhenfinished, newObj);
+                        AnimationHelpers.CallVelocity(
+                            this,
+                            cssEquivalent.DomElement, 
+                            Duration, 
+                            easingFunction, 
+                            visualStateGroupName, 
+                            callbackForWhenfinished, 
+                            newObj);
                         target.DirtyVisualValue(dependencyProperty);
                     }
                 }

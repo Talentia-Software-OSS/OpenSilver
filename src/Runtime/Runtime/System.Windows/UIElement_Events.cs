@@ -52,6 +52,11 @@ namespace Windows.UI.Xaml
 {
     partial class UIElement
     {
+        ~UIElement()
+        {
+            Console.WriteLine("Destructing {0}", this.ToString());
+
+        }
 
         static bool ignoreMouseEvents = false; // This boolean is useful because we want to ignore mouse events when touch events have happened so the same user inputs are not handled twice. (Note: when using touch events, the browsers fire the touch events at the moment of the action, then throw the mouse events once touchend is fired)
         private static DispatcherTimer _ignoreMouseEventsTimer = null;

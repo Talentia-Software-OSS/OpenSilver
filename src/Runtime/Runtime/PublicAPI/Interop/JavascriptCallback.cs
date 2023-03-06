@@ -13,12 +13,14 @@
 
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace CSHTML5.Internal
 {
     internal class JavascriptCallback : IDisposable
     {
         private static readonly SynchronyzedStore<JavascriptCallback> _store = new SynchronyzedStore<JavascriptCallback>();
+        private static readonly ConditionalWeakTable<Delegate, JavascriptCallback> _cache = new ConditionalWeakTable<Delegate, JavascriptCallback>();
 
         public int Id { get; private set; }
 
@@ -33,6 +35,8 @@ namespace CSHTML5.Internal
                 Callback = callback
             };
             jc.Id = _store.Add(jc);
+
+            Console.WriteLine("{0} => {1}", jc.Id, callback.ToString());
 
             return jc;
         }
@@ -66,13 +70,20 @@ namespace CSHTML5.Internal
             }
 
             _store.Clean(Id);
+            Clean();
 
             return null;
         }
 
         public void Dispose()
         {
+            Clean();
+        }
+
+        public void Clean()
+        {
             _store.Clean(Id);
+            OpenSilver.Interop.ExecuteJavaScriptFastAsync($"document.cleanupCallbackFunc({Id})");
         }
     }
 }

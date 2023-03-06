@@ -13,6 +13,7 @@
 \*====================================================================================*/
 
 
+using CSHTML5.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,9 +33,24 @@ namespace System.Windows.Media.Animation
 namespace Windows.UI.Xaml.Media.Animation
 #endif
 {
+    internal class AnimationInfo
+    {
+        public JavascriptCallback Callback { get; set; }
+        public string Element { get; set; }
+        public string Key { get; set; }
+    }
+
+
     internal static class AnimationHelpers
     {
-        internal static void CallVelocity(object domElement, Duration Duration, EasingFunctionBase easingFunction, string visualStateGroupName, Action callbackForWhenfinished, object jsFromToValues)
+        internal static void CallVelocity(
+            AnimationTimeline animation,
+            object domElement, 
+            Duration Duration,
+            EasingFunctionBase easingFunction, 
+            string visualStateGroupName, 
+            Action callbackForWhenfinished, 
+            object jsFromToValues)
         {
             string easingFunctionAsString = "linear";
             if (easingFunction != null)
@@ -47,6 +63,8 @@ namespace Windows.UI.Xaml.Media.Animation
             {
                 ++duration;
             }
+
+            string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(domElement);
 
             object options = CSHTML5.Interop.ExecuteJavaScriptAsync(@"new Object()");
             string sOptions = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(options);
@@ -61,7 +79,15 @@ namespace Windows.UI.Xaml.Media.Animation
             }
             else
             {
-                string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(callbackForWhenfinished);
+                var callbackInfo = new AnimationInfo()
+                {
+                    Callback = JavaScriptCallbackHelper.CreateSelfDisposedJavaScriptCallback(callbackForWhenfinished),
+                    Element = sElement,
+                    Key = visualStateGroupName
+                };
+                animation.RegisterCallback(callbackInfo);
+
+                string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(callbackInfo.Callback);
                 CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"
 {sOptions}.easing = ""{CSHTML5.Internal.INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(easingFunctionAsString)}"";
 {sOptions}.duration = {duration.ToString(Globalization.CultureInfo.InvariantCulture)};
@@ -84,7 +110,6 @@ namespace Windows.UI.Xaml.Media.Animation
                 }
             }
 
-            string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(domElement);
             string sValues = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(jsFromToValues);
             CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"Velocity({sElement}, {sValues}, {sOptions});
                                                      Velocity.Utilities.dequeue({sElement}, ""{visualStateGroupName}"");");

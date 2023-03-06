@@ -29,6 +29,7 @@ namespace Windows.UI.Xaml.Media.Animation
 {
     public abstract partial class AnimationTimeline : Timeline
     {
+        private List<AnimationInfo> _animationInfos;
         internal string _targetName;
         internal PropertyPath _targetProperty;
         internal DependencyObject _propertyContainer;
@@ -118,11 +119,37 @@ namespace Windows.UI.Xaml.Media.Animation
                     UnApply(_parameters.IsVisualStateChange);
                 }
             }
+            ReleaseCallbacks();
         }
 
         internal virtual void StopAnimation(string groupName)
         {
             
+        }
+
+        internal void RegisterCallback(AnimationInfo callback)
+        {
+            if (null == _animationInfos)
+            {
+                _animationInfos = new List<AnimationInfo>();
+            }
+            _animationInfos.Add(callback);
+        }
+
+        private void ReleaseCallbacks()
+        {
+            if (_animationInfos != null)
+            {
+                foreach (AnimationInfo info in _animationInfos)
+                {
+                    OpenSilver.Interop.ExecuteJavaScriptFastAsync($@"
+Velocity.Utilities.removeData({info.Element}, ['{info.Key}' + 'queue']);
+Velocity.Utilities.removeData({info.Element}, ['velocity']);
+");
+                    info.Callback.Dispose();
+                }
+                _animationInfos = null;
+            }
         }
 
         private void UnApply(bool isVisualStateChange)

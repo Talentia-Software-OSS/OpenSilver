@@ -130,7 +130,7 @@ document.onkeyup = function (evt) {
     document.refreshKeyModifiers(evt);
 };
 
-document.jsObjRef = new Array();
+document.jsObjRef = {};
 document.callbackCounterForSimulator = 0;
 document.measureTextBlockElement = null;
 
@@ -315,9 +315,14 @@ document.addEventListenerSafe = function (element, method, func) {
     }
 }
 
+
+document.getCallbackArgsPrefix = function(callbackId) {
+    return "callback_args_" + callbackId + "_";
+}
+
 document.eventCallback = function (callbackId, arguments, sync) {
 	const argsArray = arguments;
-	const idWhereCallbackArgsAreStored = "callback_args_" + document.callbackCounterForSimulator++;
+	const idWhereCallbackArgsAreStored = document.getCallbackArgsPrefix(callbackId) + document.callbackCounterForSimulator++;
 	document.jsObjRef[idWhereCallbackArgsAreStored] = argsArray;
 	if (sync) {
 		return window.onCallBack.OnCallbackFromJavaScript(callbackId, idWhereCallbackArgsAreStored, argsArray, true);
@@ -331,7 +336,15 @@ document.eventCallback = function (callbackId, arguments, sync) {
 	}
 }
 
-document.jsCallBackFunctionsReference = new Array();
+document.cleanupCallbackFunc = function (callbackId) {
+    delete document.jsCallBackFunctionsReference[callbackId];
+    const callbackIdPrefix = document.getCallbackArgsPrefix(callbackId);
+    Object.keys(document.jsObjRef)
+        .filter(key => key.startsWith(callbackIdPrefix))
+        .forEach(key => delete document.jsObjRef[key]);
+}
+
+document.jsCallBackFunctionsReference = {};
 
 document.getCallbackFunc = function (callbackId, sync, sliceArguments) {
     if (document.jsCallBackFunctionsReference[callbackId] === undefined) {

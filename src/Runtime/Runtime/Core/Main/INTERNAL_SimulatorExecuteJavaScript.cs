@@ -155,7 +155,8 @@ namespace CSHTML5.Internal
                         Console.WriteLine("[OPTIMIZATION] Calling setTimeout. _isDispatcherPending: " + _isDispatcherPending.ToString());
 #endif
                         string action = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(
-                            (Action)(() =>
+                            JavaScriptCallbackHelper.CreateSelfDisposedJavaScriptCallback(
+                            (() =>
                             {
 #if OPTIMIZATION_LOG
                                     Console.WriteLine("[OPTIMIZATION] Executing setTimeout. _isDispatcherPending: " + _isDispatcherPending.ToString());
@@ -165,7 +166,7 @@ namespace CSHTML5.Internal
                                     ExecutePendingJavaScriptCode("SETTIMEOUT COMPLETED");
                                 }
                             })
-                        );
+                        ));
                         CSHTML5.INTERNAL_InteropImplementation.ExecuteJavaScript_SimulatorImplementation(
                             javascript: $"setTimeout({action}, 1)",
                             runAsynchronously: false,

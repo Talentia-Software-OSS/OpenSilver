@@ -93,12 +93,13 @@ namespace CSHTML5.Internal
             if (_domElementRef != null)
             {
                 INTERNAL_EventsHelper.DetachEvent(_eventName, _domElementRef, this);
+                _handler.Dispose();
+                _handler = null;
 
                 // Free memory:
                 _domElementRef = null;
                 _sender = null;
                 _eventHandler = null;
-                _handler = null;
             }
         }
 

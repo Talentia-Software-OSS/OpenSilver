@@ -141,16 +141,9 @@ namespace CSHTML5
         internal static string GetJavascriptCallbackVariableStringForJS(JavascriptCallback jsCallback)
         {
             // Add the callback to the document:
-            var isVoid = jsCallback.GetCallback().Method.ReturnType == typeof(void);
-            return string.Format(
-                                   @"(function() {{ return document.eventCallback({0}, {1}, {2});}})", jsCallback.Id,
-#if OPENSILVER
-                                   Interop.IsRunningInTheSimulator_WorkAround ? "arguments" : "Array.prototype.slice.call(arguments)",
-#elif BRIDGE
-                                       "Array.prototype.slice.call(arguments)",
-#endif
-                                   (!isVoid).ToString().ToLower()
-                                   );
+            var isVoid = jsCallback.GetCallback().Method.ReturnType == typeof(void);           
+            return string.Format($"document.getCallbackFunc({jsCallback.Id}, {(!isVoid).ToString().ToLower()}, " +
+                $"{(!Interop.IsRunningInTheSimulator_WorkAround).ToString().ToLower()})");
         }
 
 
