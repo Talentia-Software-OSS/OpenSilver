@@ -43,11 +43,10 @@ namespace CSHTML5.Internal
 
         // Fields
         private EventHandler<EventArgsWithJSEventObject> _eventHandler;
-        private Action<object> _originalEventHandler;
         private object _sender;
         private object _domElementRef;
         private string _eventName = null;
-        private Delegate _handler;
+        private JavascriptCallback _handler;
 
         // Constructor
         internal HtmlEventProxy(string eventName, object domElementRef, Action<object> originalEventHandler, bool sync)
@@ -56,11 +55,10 @@ namespace CSHTML5.Internal
             this._domElementRef = domElementRef;
             this._sender = this;
             this._eventHandler = (EventHandler<HtmlEventProxy.EventArgsWithJSEventObject>)((s, e) => { originalEventHandler(e.JSEventObject); });
-            this._originalEventHandler = originalEventHandler;
             this._handler = CreateHandler(sync);
         }
 
-        public Delegate Handler
+        internal JavascriptCallback Handler
         {
             get { return _handler; }
         }
@@ -76,31 +74,30 @@ namespace CSHTML5.Internal
             }
         }
 
-        private Delegate CreateHandler(bool sync)
+        private JavascriptCallback CreateHandler(bool sync)
         {
             if (sync)
             {
-                return new Func<object, string>(jsEventArg =>
+                return JavascriptCallback.Create(new Func<object, string>(jsEventArg =>
                 {
                     OnEventImpl(jsEventArg);
                     return "";
-                });
+                }));
             }
 
-            return new Action<object>(jsEventArg => OnEventImpl(jsEventArg));
+            return JavascriptCallback.Create(new Action<object>(jsEventArg => OnEventImpl(jsEventArg)));
         }
 
         public void Dispose()
         {
             if (_domElementRef != null)
             {
-                INTERNAL_EventsHelper.DetachEvent(_eventName, _domElementRef, this, _originalEventHandler);
+                INTERNAL_EventsHelper.DetachEvent(_eventName, _domElementRef, this);
 
                 // Free memory:
                 _domElementRef = null;
                 _sender = null;
                 _eventHandler = null;
-                _originalEventHandler = null;
                 _handler = null;
             }
         }

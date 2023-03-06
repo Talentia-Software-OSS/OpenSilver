@@ -11,7 +11,9 @@
 *  
 \*====================================================================================*/
 
+using CSHTML5.Internal;
 using System;
+using System.Runtime.Serialization;
 
 #if MIGRATION
 using System.Windows;
@@ -144,9 +146,11 @@ namespace OpenSilver.Internal
         private class ResizeObserverAdapter : IResizeObserverAdapter
         {
             // Holds the reference to the observer js object.
+            private static object _objectReference;
             private static object _observerJsReference;
 
             private bool _isObserved;
+            private JavascriptCallback _observeCallback;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="ResizeObserverAdapter"/>.
@@ -157,6 +161,7 @@ namespace OpenSilver.Internal
 
             public bool IsObserved => _isObserved;
 
+
             /// <inheritdoc />
             public void Observe(object elementReference, Action<Size> callback)
             {
@@ -165,9 +170,10 @@ namespace OpenSilver.Internal
                 if (!_isObserved)
                 {
                     _isObserved = true;
+                    _observeCallback = JavascriptCallback.Create(new Action<string>((string arg) => callback(ParseSize(arg))));
 
                     string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(elementReference);
-                    string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(new Action<string>((string arg) => callback(ParseSize(arg))));
+                    string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(_observeCallback);
 
                     OpenSilver.Interop.ExecuteJavaScript($"{_observerJsReference}.observe({sElement}, {sAction})");
                 }
@@ -181,6 +187,7 @@ namespace OpenSilver.Internal
                 if (_isObserved)
                 {
                     _isObserved = false;
+                    _observeCallback = null;
 
                     string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(elementReference);
                     OpenSilver.Interop.ExecuteJavaScript($"{_observerJsReference}.unobserve({sElement})");
@@ -191,7 +198,8 @@ namespace OpenSilver.Internal
             {
                 if (_observerJsReference == null)
                 {
-                    _observerJsReference = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(Interop.ExecuteJavaScript("new ResizeObserverAdapter()"));
+                    _objectReference = Interop.ExecuteJavaScript("new ResizeObserverAdapter()");
+                    _observerJsReference = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(_objectReference);
                 }
             }
         }

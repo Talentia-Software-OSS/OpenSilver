@@ -54,13 +54,13 @@ namespace CSHTML5.Internal // IMPORTANT: if you change this namespace, make sure
 #if !BRIDGE
         [JSIgnore]
 #endif
-        internal static Dictionary<string, UIElement> INTERNAL_idsToUIElements;
+        internal static Dictionary<string, WeakReference<UIElement>> INTERNAL_idsToUIElements;
 
         static INTERNAL_HtmlDomManager()
         {
             if (!IsRunningInJavaScript())
             {
-                INTERNAL_idsToUIElements = new Dictionary<string, UIElement>();
+                INTERNAL_idsToUIElements = new Dictionary<string, WeakReference<UIElement>>();
             }
         }
 
@@ -98,20 +98,25 @@ namespace CSHTML5.Internal // IMPORTANT: if you change this namespace, make sure
         {
             if (IsRunningInJavaScript())
             {
+#if BRIDGE
                 ((dynamic)domNode).parentNode.removeChild(domNode);
+#endif
             }
 
             else
             {
+                INTERNAL_HtmlDomElementReference domNodeRef = ((INTERNAL_HtmlDomElementReference)domNode);
                 string javaScriptCodeToExecute = $@"
-                    var element = document.getElementById(""{((INTERNAL_HtmlDomElementReference)domNode).UniqueIdentifier}"");
+                    var element = document.getElementById(""{domNodeRef.UniqueIdentifier}"");
                     if (element) element.parentNode.removeChild(element);";
                 ExecuteJavaScript(javaScriptCodeToExecute, commentForDebugging); // IMPORTANT: This cannot be replaced by "INTERNAL_SimulatorPerformanceOptimizer.QueueJavaScriptCode" because the element may no longer be in the tree when we try to remove it (cf. issues we had with the Grid on 2015.08.26)
-                if (((INTERNAL_HtmlDomElementReference)domNode).Parent != null)
+                if (domNodeRef.Parent != null)
                 {
-                    ((INTERNAL_HtmlDomElementReference)domNode).Parent.FirstChild = null;
+                    domNodeRef.Parent.FirstChild = null;
                 }
+                INTERNAL_idsToUIElements.Remove(domNodeRef.UniqueIdentifier);
             }
+
         }
 
 #if CSHTML5NETSTANDARD
@@ -124,7 +129,7 @@ namespace CSHTML5.Internal // IMPORTANT: if you change this namespace, make sure
         //[JSReplacement("$domElementRef.parentNode")] // Commented because of a JSIL bug: the attribute is not taken into account: the method is ignored.
 #if BRIDGE
         [Template("{domElementRef}.parentNode")]
-#endif  
+#endif
         public static dynamic GetParentDomElement(dynamic domElementRef)
         {
             if (IsRunningInJavaScript())
@@ -155,7 +160,7 @@ namespace CSHTML5.Internal // IMPORTANT: if you change this namespace, make sure
         //[JSReplacement("$domElementRef.parentNode")] // Commented because of a JSIL bug: the attribute is not taken into account: the method is ignored.
 #if BRIDGE
         [Template("{domElementRef}.firstChild")]
-#endif  
+#endif
         public static dynamic GetFirstChildDomElement(dynamic domElementRef)
         {
             if (IsRunningInJavaScript())
@@ -688,16 +693,11 @@ element.remove({1});
             {
                 if (domElement != null)
                 {
-                    //INTERNAL_HtmlDomManager.SetDomElementStyleProperty(cssEquivalent.DomElement, cssEquivalent.Name, cssValue);
-                    object newObj = CSHTML5.Interop.ExecuteJavaScriptAsync(@"new Object()");
-                    string sNewobj = INTERNAL_InteropImplementation.GetVariableStringForJS(newObj);
+                    string sElement = INTERNAL_InteropImplementation.GetVariableStringForJS(domElement);
                     string sCssValue = INTERNAL_InteropImplementation.GetVariableStringForJS(cssValue);
-                    foreach (string csspropertyName in cssPropertyNames)
-                    {
-                        CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"{sNewobj}[""{csspropertyName}""] = {sCssValue};");
-                    }
-                    string sElement = INTERNAL_InteropImplementation.GetVariableStringForJS(domElement); ;
-                    CSHTML5.Interop.ExecuteJavaScriptFastAsync($"Velocity({sElement}, {sNewobj}, {{duration:1, queue:false}});");
+                    string options = $"duration:1,queue:false, complete: function() {{ setTimeout(function() {{ Velocity.Utilities.removeData({sElement}, ['velocity']); }}, 5); }}";
+                    OpenSilver.Interop.ExecuteJavaScriptFastAsync(
+                        $"Velocity({sElement}, {{{string.Join(",", cssPropertyNames.Select(name => $"{name}:{sCssValue}"))}}}, {{{options}}});");
                 }
 
             }
@@ -940,7 +940,7 @@ function(){
                 Interop.ExecuteJavaScriptFastAsync($@"document.createElementSafe(""{domElementTag}"", ""{uniqueIdentifier}"", {sParentRef}, {index.ToInvariantString()})");
             }
             
-            INTERNAL_idsToUIElements.Add(uniqueIdentifier, associatedUIElement);
+            INTERNAL_idsToUIElements.Add(uniqueIdentifier, new WeakReference<UIElement>(associatedUIElement));
 
             return new INTERNAL_HtmlDomElementReference(uniqueIdentifier, parent); //todo: when parent is null this breaks for the root control, but the whole logic will be replaced with simple "ExecuteJavaScript" calls in the future, so it will not be a problem.
         }
@@ -968,7 +968,7 @@ var parentElement = document.getElementByIdSafe(""{parentUniqueIdentifier}"");
     parentElement.children[{insertionIndex}].insertAdjacentElement(""{relativePosition}"", newElement);";
 
             ExecuteJavaScript(javaScriptToExecute);
-            INTERNAL_idsToUIElements.Add(uniqueIdentifier, associatedUIElement);
+            INTERNAL_idsToUIElements.Add(uniqueIdentifier, new WeakReference<UIElement>(associatedUIElement));
             return new INTERNAL_HtmlDomElementReference(uniqueIdentifier, (INTERNAL_HtmlDomElementReference)parentRef);
         }
 
@@ -1002,7 +1002,7 @@ var parentElement = document.getElementByIdSafe(""{parentUniqueIdentifier}"");
 parentElement.appendChild(newElement);";
 
                 ExecuteJavaScript(javaScriptToExecute);
-                INTERNAL_idsToUIElements.Add(uniqueIdentifier, associatedUIElement);
+                INTERNAL_idsToUIElements.Add(uniqueIdentifier, new WeakReference<UIElement>(associatedUIElement));
                 return new INTERNAL_HtmlDomElementReference(uniqueIdentifier, ((INTERNAL_HtmlDomElementReference)parentRef).Parent);
                 //todo-perfs: check if there is a better solution in terms of performance (while still remaining compatible with all browsers).
 #if !CSHTML5NETSTANDARD
@@ -1249,7 +1249,15 @@ parentElement.appendChild(child);";
                         string id = Convert.ToString(jsId);
                         if (INTERNAL_HtmlDomManager.INTERNAL_idsToUIElements.ContainsKey(id))
                         {
-                            result = INTERNAL_HtmlDomManager.INTERNAL_idsToUIElements[id];
+                            var weakReference = INTERNAL_HtmlDomManager.INTERNAL_idsToUIElements[id];
+                            if (weakReference.TryGetTarget(out var uie))
+                            {
+                                result = uie;
+                            }
+                            else
+                            {
+                                INTERNAL_HtmlDomManager.INTERNAL_idsToUIElements.Remove(id);
+                            }
                             break;
                         }
                     }

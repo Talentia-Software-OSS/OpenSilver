@@ -21,6 +21,8 @@ using System.Linq;
 
 #if OPENSILVER
 using System.Text.Json;
+using System.Threading;
+using System.Windows.Data;
 #endif
 
 #if MIGRATION
@@ -33,37 +35,33 @@ namespace CSHTML5
 {
     internal static class INTERNAL_InteropImplementation
     {
-        private static bool IsJavaScriptCSharpInteropSetUp;
-        private static Dictionary<int, Delegate> CallbacksDictionary = new Dictionary<int, Delegate>();
-        private static Dictionary<Delegate, string> JsCallbackFunctions = new Dictionary<Delegate, string>();
-        private static Random RandomGenerator = new Random();
-        private static List<string> UnmodifiedJavascriptCalls = new List<string>();
-        private static int IndexOfNextUnmodifiedJSCallInList = 0;
+        private static bool _isInitialized;
+        private static readonly SynchronyzedStore<string> _javascriptCallsStore = new SynchronyzedStore<string>();
+        private static readonly ReferenceIDGenerator _refIdGenerator = new ReferenceIDGenerator();
 
         static INTERNAL_InteropImplementation()
         {
             Application.INTERNAL_Reloaded += (sender, e) =>
             {
-                IsJavaScriptCSharpInteropSetUp = false;
+                _isInitialized = false;
             };
         }
 
-        private static string GetCallbackJsCode(Delegate callback, bool isVoid)
+        private static void EnsureInitialized()
         {
-            if (!JsCallbackFunctions.ContainsKey(callback))
+            if (_isInitialized)
             {
-                // Add the callback to the document:
-                var callbackId = ReferenceIDGenerator.GenerateId();
-                CallbacksDictionary.Add(callbackId, callback);
-
-                JsCallbackFunctions[callback] = $@"document.getCallbackFunc({callbackId}, {(!isVoid).ToString().ToLower()}," +              
-#if OPENSILVER
-                $"{(!Interop.IsRunningInTheSimulator_WorkAround).ToString().ToLower()})";
-#elif BRIDGE
-                "true)";
-#endif
+                return;
             }
-            return JsCallbackFunctions[callback];
+
+            if (OpenSilver.Interop.IsRunningInTheSimulator)
+            {
+                // Adding a property to the JavaScript "window" object:
+                dynamic jsWindow = INTERNAL_HtmlDomManager.ExecuteJavaScriptWithResult("window");
+                jsWindow.SetProperty("onCallBack", new OnCallbackSimulator());
+            }
+
+            _isInitialized = true;
         }
 
         internal static string GetVariableStringForJS(object variable)
@@ -106,30 +104,18 @@ namespace CSHTML5
                 string expression = ((INTERNAL_SimulatorJSExpression)variable).Expression;
                 return expression;
             }
+            else if (variable is JavascriptCallback)
+            {
+                return GetJavascriptCallbackVariableStringForJS((JavascriptCallback)variable);
+            }
             else if (variable is Delegate)
             {
                 //-----------
                 // Delegates
                 //-----------
 
-                Delegate callback = (Delegate)variable;
-
-                // Add the callback to the document:
-                var isVoid = callback.Method.ReturnType == typeof(void);
-                return GetCallbackJsCode(callback, isVoid);
-
-
-                // Note: generating the random number in JS rather than C# is important in order
-                // to be able to put this code inside a JavaScript "for" statement (cf.
-                // deserialization code of the JsonConvert extension, and also ZenDesk ticket #974)
-                // so that the "closure" system of JavaScript ensures that the number is the same
-                // before and inside the "setTimeout" call, but different for each iteration of the
-                // "for" statement in which this piece of code is put.
-                // Note: we store the arguments in the jsObjRef that is inside
-                // the JS context, so that the user can access them from the callback.
-                // Note: "Array.prototype.slice.call" will convert the arguments keyword into an array
-                // (cf. http://stackoverflow.com/questions/960866/how-can-i-convert-the-arguments-object-to-an-array-in-javascript)
-                // Note: in the command above, we use "setTimeout" to avoid thread/locks problems.
+                var jsCallback = JavascriptCallback.Create((Delegate)variable);
+                return GetJavascriptCallbackVariableStringForJS(jsCallback);
             }
             else if (variable == null)
             {
@@ -152,6 +138,22 @@ namespace CSHTML5
             }
         }
 
+        internal static string GetJavascriptCallbackVariableStringForJS(JavascriptCallback jsCallback)
+        {
+            // Add the callback to the document:
+            var isVoid = jsCallback.GetCallback().Method.ReturnType == typeof(void);
+            return string.Format(
+                                   @"(function() {{ return document.eventCallback({0}, {1}, {2});}})", jsCallback.Id,
+#if OPENSILVER
+                                   Interop.IsRunningInTheSimulator_WorkAround ? "arguments" : "Array.prototype.slice.call(arguments)",
+#elif BRIDGE
+                                       "Array.prototype.slice.call(arguments)",
+#endif
+                                   (!isVoid).ToString().ToLower()
+                                   );
+        }
+
+
 #if BRIDGE
         [Bridge.Template("null")]
 #endif
@@ -172,24 +174,7 @@ namespace CSHTML5
                 throw new ArgumentException("You cannot set both 'noImpactOnPendingJSCode' and 'runAsynchronously' to True. The 'noImpactOnPendingJSCode' only has meaning when running synchronously.");
 
             // Make sure the JS to C# interop is set up:
-            if (!IsJavaScriptCSharpInteropSetUp)
-            {
-#if OPENSILVER
-                if (Interop.IsRunningInTheSimulator_WorkAround)
-                {
-#endif
-                    // Adding a property to the JavaScript "window" object:
-                    dynamic jsWindow = INTERNAL_HtmlDomManager.ExecuteJavaScriptWithResult("window");
-                    jsWindow.SetProperty("onCallBack", new OnCallBack(CallbacksDictionary));
-#if OPENSILVER
-                }
-                else
-                {
-                    OnCallBack.SetCallbacksDictionary(CallbacksDictionary);
-                }
-#endif
-                IsJavaScriptCSharpInteropSetUp = true;
-            }
+            EnsureInitialized();
 
             string unmodifiedJavascript = javascript;
 
@@ -205,16 +190,13 @@ namespace CSHTML5
                 javascript = javascript.Replace("$" + i.ToString(), GetVariableStringForJS(variables[i]));
             }
 
-            UnmodifiedJavascriptCalls.Add(unmodifiedJavascript);
-
             // Change the JS code to call ShowErrorMessage in case of error:
-            string errorCallBackId = IndexOfNextUnmodifiedJSCallInList.ToString();
-            ++IndexOfNextUnmodifiedJSCallInList;
+            string errorCallBackId = _javascriptCallsStore.Add(unmodifiedJavascript).ToString();
 
             // Surround the javascript code with some code that will store the
             // result into the "document.jsObjRef" for later
             // use in subsequent calls to this method
-            int referenceId = ReferenceIDGenerator.GenerateId();
+            string referenceId = _refIdGenerator.NewId().ToString();
             javascript = $"document.callScriptSafe(\"{referenceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",\"{INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(javascript)}\",{errorCallBackId})";
 
             // Execute the javascript code:
@@ -228,13 +210,7 @@ namespace CSHTML5
                 INTERNAL_HtmlDomManager.ExecuteJavaScript(javascript);
             }
 
-            var objectReference = new INTERNAL_JSObjectReference()
-            {
-                Value = value,
-                ReferenceId = referenceId.ToString()
-            };
-
-            return objectReference;
+            return new INTERNAL_JSObjectReference(value, referenceId);
         }
 
         internal static void ResetLoadedFilesDictionaries()
@@ -245,7 +221,7 @@ namespace CSHTML5
 
         internal static void ShowErrorMessage(string errorMessage, int indexOfCallInList)
         {
-            string str = UnmodifiedJavascriptCalls.ElementAt(indexOfCallInList);
+            string str = _javascriptCallsStore.Get(indexOfCallInList);
 
 #if OPENSILVER
             if (IsRunningInTheSimulator_WorkAround())
@@ -317,23 +293,6 @@ namespace CSHTML5
             }
         }
 
-
-        /// <summary>
-        /// This class has a method that generates IDs in sequence (0, 1, 2, 3...)
-        /// </summary>
-#if BRIDGE
-        [Bridge.External]
-#endif
-        internal static class ReferenceIDGenerator
-        {
-            static int NextFreeId = 1;
-            internal static int GenerateId()
-            {
-                int freeId = NextFreeId;
-                NextFreeId++;
-                return freeId;
-            }
-        }
 
         //This Dictionary is here to:
         // - know when we are already attempting to load the file so we do not try to load it a second time
@@ -494,5 +453,52 @@ img.src = {sHtml5Path};");
             return DotNetForHtml5.Core.INTERNAL_Simulator.IsRunningInTheSimulator_WorkAround;
         }
 #endif
+    }
+
+
+    /// <summary>
+    /// This class has a method that generates IDs in sequence (0, 1, 2, 3...)
+    /// </summary>
+#if BRIDGE
+    [Bridge.External]
+#endif
+    internal class ReferenceIDGenerator
+    {
+        private int _id = 0;
+
+        internal int NewId() => Interlocked.Increment(ref _id);
+    }
+
+    internal class SynchronyzedStore<T>
+    {
+        private readonly object _lock = new object();
+        private readonly List<T> _items;
+
+        public SynchronyzedStore()
+            : this(8192)
+        {
+        }
+
+        public SynchronyzedStore(int initialCapacity)
+        {
+            _items = new List<T>(initialCapacity);
+        }
+
+        public int Add(T item)
+        {
+            lock (_lock)
+            {
+                _items.Add(item);
+                return _items.Count - 1;
+            }
+        }
+
+        public void Clean(int index)
+        {
+            _items[index] = default;
+        }
+
+
+        public T Get(int index) => _items[index];
     }
 }

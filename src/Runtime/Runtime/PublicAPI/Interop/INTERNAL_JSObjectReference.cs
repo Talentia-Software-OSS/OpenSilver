@@ -17,6 +17,7 @@
 using Bridge;
 using DotNetBrowser;
 #else
+using CSHTML5.Internal;
 using JSIL.Meta;
 #endif
 
@@ -51,6 +52,32 @@ namespace CSHTML5.Types
                     System.Diagnostics.Debug.WriteLine("INTERNAL_JSObjectReference error: cannot set index of non-array item");
                 _arrayIndex = value;
             }
+        }
+
+        internal INTERNAL_JSObjectReference(object value)
+        {
+            Value = value;
+        }
+
+        public INTERNAL_JSObjectReference(object value, string referenceId)
+        {
+            Value = value;
+            ReferenceId = referenceId;
+        }
+
+        public INTERNAL_JSObjectReference(object value, string referenceId, int arrayIndex)
+        {
+            Value = value;
+            ReferenceId = referenceId;
+            IsArray = true;
+            ArrayIndex = arrayIndex;
+        }
+
+        ~INTERNAL_JSObjectReference()
+        {
+
+            // Removing itself from JS dict used for C# to JS Interops, otherwise dict keeps growing. Needs more testing
+            INTERNAL_HtmlDomManager.ExecuteJavaScript($"delete document.jsObjRef['{ReferenceId}']");
         }
 
 #if BRIDGE

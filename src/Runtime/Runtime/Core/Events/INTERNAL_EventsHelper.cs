@@ -41,7 +41,7 @@ namespace CSHTML5.Internal
         public static HtmlEventProxy AttachToDomEvents(string eventName, object domElementRef, Action<object> eventHandlerWithJsEventArg, bool isSync = false)
         {
             HtmlEventProxy newProxy = new HtmlEventProxy(eventName, domElementRef, eventHandlerWithJsEventArg, isSync);
-            AttachEvent(eventName, domElementRef, newProxy, eventHandlerWithJsEventArg);
+            AttachEvent(eventName, domElementRef, newProxy);
             return newProxy;
         }
         // Dictionary to remember which type overrides which event callback:
@@ -52,7 +52,7 @@ namespace CSHTML5.Internal
 #else
         [Template("{domElementRef}.addEventListener({eventName}, {originalEventHandler})")]
 #endif
-        static void AttachEvent(string eventName, object domElementRef, HtmlEventProxy newProxy, Action<object> originalEventHandler)
+        static void AttachEvent(string eventName, object domElementRef, HtmlEventProxy newProxy)
         {
 #if !BUILDINGDOCUMENTATION
             string sAction = INTERNAL_InteropImplementation.GetVariableStringForJS(newProxy.Handler);
@@ -85,7 +85,7 @@ namespace CSHTML5.Internal
 #else
         [Template("{domElementRef}.removeEventListener({eventName},{originalEventHandler})")]
 #endif
-        internal static void DetachEvent(string eventName, object domElementRef, HtmlEventProxy proxy, Action<object> originalEventHandler)
+        internal static void DetachEvent(string eventName, object domElementRef, HtmlEventProxy proxy)
         {
 #if !BUILDINGDOCUMENTATION
             string sAction = INTERNAL_InteropImplementation.GetVariableStringForJS(proxy.Handler);

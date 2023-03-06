@@ -88,7 +88,7 @@ public static partial class CSharpXamlForHtml5
                     Tuple<string, Action<object>> key = new Tuple<string, Action<object>>(eventName, handler);
                     if (_eventNameAndHandlerToHtmlEventProxy !=  null && _eventNameAndHandlerToHtmlEventProxy.ContainsKey(key))
                     {
-                        INTERNAL_EventsHelper.DetachEvent(eventName, _domElementRef, _eventNameAndHandlerToHtmlEventProxy[key], handler);
+                        INTERNAL_EventsHelper.DetachEvent(eventName, _domElementRef, _eventNameAndHandlerToHtmlEventProxy[key]);
                     }
                     //else do nothing.
                 }

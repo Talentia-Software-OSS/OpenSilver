@@ -514,8 +514,7 @@ namespace CSHTML5.Native.Html.Controls
             INTERNAL_EventsHelper.DetachEvent(
                 "change",
                 this._nativeComboBoxDomElement,
-                this._changeEventProxy,
-                (Action<object>)this.DomSelectionChanged);
+                this._changeEventProxy);
         }
 
         #endregion Public Methods
