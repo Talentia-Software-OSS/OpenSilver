@@ -14,13 +14,13 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Windows;
 
 namespace CSHTML5.Internal
 {
     internal class JavascriptCallback : IDisposable
     {
         private static readonly SynchronyzedStore<JavascriptCallback> _store = new SynchronyzedStore<JavascriptCallback>();
-        private static readonly ConditionalWeakTable<Delegate, JavascriptCallback> _cache = new ConditionalWeakTable<Delegate, JavascriptCallback>();
 
         public int Id { get; private set; }
 
@@ -36,7 +36,7 @@ namespace CSHTML5.Internal
             };
             jc.Id = _store.Add(jc);
 
-            Console.WriteLine("{0} => {1}", jc.Id, callback.ToString());
+            //Console.WriteLine("{0} => {1}.{2}", jc.Id, callback.Method.ReflectedType.FullName, callback.Method.Name);
 
             return jc;
         }

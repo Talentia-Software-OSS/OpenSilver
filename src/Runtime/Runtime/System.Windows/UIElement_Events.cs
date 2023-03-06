@@ -840,12 +840,16 @@ namespace Windows.UI.Xaml
         /// </summary>
         internal bool INTERNAL_isPointerInside = false;
         void SetIsPointerInsideToTrue() { this.INTERNAL_isPointerInside = true; }
+
+        private JavascriptCallback setIsPointerInsideToTrueCallback;
+
         void StartManagingPointerPositionForPointerExitedEvent()
         {
             if (!isAlreadySubscribedToMouseEnterAndLeave && this.INTERNAL_OuterDomElement != null)
             {
                 string sElement = INTERNAL_InteropImplementation.GetVariableStringForJS(this.INTERNAL_OuterDomElement);
-                string sAction = INTERNAL_InteropImplementation.GetVariableStringForJS((Action)SetIsPointerInsideToTrue);
+                setIsPointerInsideToTrueCallback = JavascriptCallback.Create((Action)SetIsPointerInsideToTrue);
+                string sAction = INTERNAL_InteropImplementation.GetVariableStringForJS(setIsPointerInsideToTrueCallback);
                 CSHTML5.Interop.ExecuteJavaScript($@"{sElement}.addEventListener(""mouseenter"", {sAction}, false);");
 
 
@@ -858,8 +862,10 @@ namespace Windows.UI.Xaml
             if (isAlreadySubscribedToMouseEnterAndLeave && this.INTERNAL_OuterDomElement != null)
             {
                 string sElement = INTERNAL_InteropImplementation.GetVariableStringForJS(this.INTERNAL_OuterDomElement);
-                string sAction = INTERNAL_InteropImplementation.GetVariableStringForJS((Action)SetIsPointerInsideToTrue);
+                string sAction = INTERNAL_InteropImplementation.GetVariableStringForJS(setIsPointerInsideToTrueCallback);
                 CSHTML5.Interop.ExecuteJavaScript($@"{sElement}.removeEventListener(""mouseenter"", {sAction});");
+
+                setIsPointerInsideToTrueCallback.Dispose();
 
                 INTERNAL_isPointerInside = false; //don't know if this is useful but just in case.
                 isAlreadySubscribedToMouseEnterAndLeave = false;
