@@ -148,3 +148,26 @@ window.callJSUnmarshalled = function (javaScriptToExecute) {
         return BINDING.js_to_mono_obj(result + " [NOT USABLE DIRECTLY IN C#] (" + resultType + ")");
     }
 };
+
+window.callJSUnmarshalledHeap = (function () {
+    const textDecoder = new TextDecoder('utf-8');
+    return function (arrAddress, length) {
+        const byteArray = Module.HEAPU8.subarray(arrAddress + 16, arrAddress + 16 + length);
+        const javaScriptToExecute = textDecoder.decode(byteArray);
+        const result = eval(javaScriptToExecute);
+        const resultType = typeof result;
+		switch (resultType) {
+			case 'string':
+			case 'number':
+			case 'boolean':
+				return BINDING.js_to_mono_obj(result);
+			default:
+				if (isByteArray(result)) {
+					return BINDING.js_typed_array_to_array(result);
+				}
+				else {
+					return BINDING.js_to_mono_obj(result + " [NOT USABLE DIRECTLY IN C#] (" + resultType + ")");
+				}
+		}
+    };
+})();

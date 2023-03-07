@@ -33,5 +33,10 @@ namespace DotNetForHtml5
             object result = ((JSInProcessRuntime)JSRuntime).Invoke<object>("callJS", javaScriptToExecute);
             return result;
         }
+
+        public object InvokeOnHeap(string callJSMethodName, byte[] buffer, int curLength)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }
