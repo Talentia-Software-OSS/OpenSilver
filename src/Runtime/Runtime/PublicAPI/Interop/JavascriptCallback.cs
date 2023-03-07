@@ -20,13 +20,13 @@ namespace CSHTML5.Internal
 {
     internal class JavascriptCallback : IDisposable
     {
-        private static readonly SynchronyzedStore<JavascriptCallback> _store = new SynchronyzedStore<JavascriptCallback>();
+        private static readonly SynchronizedStore<JavascriptCallback> _store = new SynchronizedStore<JavascriptCallback>();
 
         public int Id { get; private set; }
 
-        public Delegate Callback { get; private set; }
+        public Delegate Callback { get; set; }
 
-        public WeakReference<Delegate> CallbackWeakReference { get; private set; }
+        public WeakReference<Delegate> CallbackWeakReference { get; set; }
 
         public static JavascriptCallback Create(Delegate callback)
         {

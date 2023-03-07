@@ -53,6 +53,8 @@ namespace Windows.UI.Xaml.Controls
             return div;
         }
 
+        internal JavascriptCallback clickCallback;
+
         protected internal override void INTERNAL_OnAttachedToVisualTree()
         {
             base.INTERNAL_OnAttachedToVisualTree();
@@ -88,10 +90,18 @@ namespace Windows.UI.Xaml.Controls
             // absorbs pointer events.
 
             string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(this.INTERNAL_OuterDomElement);
-            string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS((Action<object>)TextBoxView_GotFocus);
+            clickCallback = JavascriptCallback.Create((Action<object>)TextBoxView_GotFocus);
+            string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(clickCallback);
             OpenSilver.Interop.ExecuteJavaScript($"{sElement}.addEventListener('click', {sAction})");
 
             UpdateDomText(Host.Text);
+        }
+
+        protected internal override void INTERNAL_OnDetachedFromVisualTree()
+        {
+            clickCallback?.Dispose();
+            clickCallback = null;
+            base.INTERNAL_OnDetachedFromVisualTree();
         }
 
         protected override void OnAfterApplyHorizontalAlignmentAndWidth()

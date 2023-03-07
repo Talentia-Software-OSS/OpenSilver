@@ -81,7 +81,7 @@ namespace Windows.UI.Xaml.Media.Animation
             {
                 var callbackInfo = new AnimationInfo()
                 {
-                    Callback = JavaScriptCallbackHelper.CreateSelfDisposedJavaScriptCallback(callbackForWhenfinished),
+                    Callback = JavascriptCallbackHelper.CreateSelfDisposedJavaScriptCallback(callbackForWhenfinished),
                     Element = sElement,
                     Key = visualStateGroupName
                 };

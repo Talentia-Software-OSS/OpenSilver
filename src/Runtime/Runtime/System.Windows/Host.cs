@@ -11,6 +11,7 @@
 *  
 \*====================================================================================*/
 
+using CSHTML5.Internal;
 using System;
 using System.Collections.Generic;
 using System.Windows.Browser;
@@ -28,6 +29,7 @@ namespace Windows.UI.Xaml // Note: we didn't use the "Interop" namespace to avoi
         private Content _content;
         private Settings _settings;
         private string _navigationState;
+        private JavascriptCallback onNavigationChangedCallback;
 
         public Host() : this(false) { }
 
@@ -37,7 +39,13 @@ namespace Windows.UI.Xaml // Note: we didn't use the "Interop" namespace to avoi
             _content = new Content(_hookupEvents);
 
             _navigationState = GetBrowserNavigationState();
-            OpenSilver.Interop.ExecuteJavaScript("window.addEventListener('hashchange', $0, false)", (Action)OnNavigationChanged);
+            onNavigationChangedCallback = JavascriptCallback.Create((Action)OnNavigationChanged);
+            OpenSilver.Interop.ExecuteJavaScript("window.addEventListener('hashchange', $0, false)", onNavigationChangedCallback);
+        }
+
+        ~Host()
+        {
+            onNavigationChangedCallback.Dispose();
         }
 
         /// <summary>

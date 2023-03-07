@@ -155,7 +155,7 @@ namespace CSHTML5.Internal
                         Console.WriteLine("[OPTIMIZATION] Calling setTimeout. _isDispatcherPending: " + _isDispatcherPending.ToString());
 #endif
                         string action = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(
-                            JavaScriptCallbackHelper.CreateSelfDisposedJavaScriptCallback(
+                            JavascriptCallbackHelper.CreateSelfDisposedJavaScriptCallback(
                             (() =>
                             {
 #if OPTIMIZATION_LOG

@@ -23,6 +23,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Windows.Data;
+using System.Windows.Controls;
 #endif
 
 #if MIGRATION
@@ -36,7 +37,7 @@ namespace CSHTML5
     internal static class INTERNAL_InteropImplementation
     {
         private static bool _isInitialized;
-        private static readonly SynchronyzedStore<string> _javascriptCallsStore = new SynchronyzedStore<string>();
+        private static readonly SynchronizedStore<string> _javascriptCallsStore = new SynchronizedStore<string>();
         private static readonly ReferenceIDGenerator _refIdGenerator = new ReferenceIDGenerator();
 
         static INTERNAL_InteropImplementation()
@@ -113,7 +114,6 @@ namespace CSHTML5
                 //-----------
                 // Delegates
                 //-----------
-
                 var jsCallback = JavascriptCallback.Create((Delegate)variable);
                 return GetJavascriptCallbackVariableStringForJS(jsCallback);
             }
@@ -141,9 +141,16 @@ namespace CSHTML5
         internal static string GetJavascriptCallbackVariableStringForJS(JavascriptCallback jsCallback)
         {
             // Add the callback to the document:
-            var isVoid = jsCallback.GetCallback().Method.ReturnType == typeof(void);           
-            return string.Format($"document.getCallbackFunc({jsCallback.Id}, {(!isVoid).ToString().ToLower()}, " +
-                $"{(!Interop.IsRunningInTheSimulator_WorkAround).ToString().ToLower()})");
+            var isVoid = jsCallback.GetCallback().Method.ReturnType == typeof(void);
+            return string.Format(
+                                   @"(function() {{ return document.eventCallback({0}, {1}, {2});}})", jsCallback.Id,
+#if OPENSILVER
+                                   Interop.IsRunningInTheSimulator_WorkAround ? "arguments" : "Array.prototype.slice.call(arguments)",
+#elif BRIDGE
+                                       "Array.prototype.slice.call(arguments)",
+#endif
+                                   (!isVoid).ToString().ToLower()
+                                   );
         }
 
 
@@ -462,36 +469,46 @@ img.src = {sHtml5Path};");
         internal int NewId() => Interlocked.Increment(ref _id);
     }
 
-    internal class SynchronyzedStore<T>
+    internal class SynchronizedStore<T>
     {
+        private static readonly ReferenceIDGenerator _refIdGenerator = new ReferenceIDGenerator();
+
         private readonly object _lock = new object();
-        private readonly List<T> _items;
+        private readonly Dictionary<int, T> _items;
 
-        public SynchronyzedStore()
-            : this(8192)
+        public SynchronizedStore()
         {
-        }
-
-        public SynchronyzedStore(int initialCapacity)
-        {
-            _items = new List<T>(initialCapacity);
+            _items = new Dictionary<int, T>(8192);
         }
 
         public int Add(T item)
         {
             lock (_lock)
             {
-                _items.Add(item);
-                return _items.Count - 1;
+                var newId = _refIdGenerator.NewId();
+                _items.Add(newId, item);
+                return newId;
             }
         }
 
         public void Clean(int index)
         {
-            _items[index] = default;
+            _items.Remove(index);
         }
 
 
-        public T Get(int index) => _items[index];
+        public T Get(int index) => _items.ContainsKey(index) ? _items[index] : default;
+
+        public void ExecuteOnFilter(Func<T, bool> condition, Action<T> action)
+        {
+            lock (_lock)
+            {
+                var toDelete = _items.Where(kvp => condition(kvp.Value)).ToList();
+                foreach(var kvp in toDelete)
+                {
+                    action(kvp.Value);
+                }
+            }
+        }
     }
 }

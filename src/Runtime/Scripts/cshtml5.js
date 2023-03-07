@@ -337,25 +337,10 @@ document.eventCallback = function (callbackId, arguments, sync) {
 }
 
 document.cleanupCallbackFunc = function (callbackId) {
-    delete document.jsCallBackFunctionsReference[callbackId];
     const callbackIdPrefix = document.getCallbackArgsPrefix(callbackId);
     Object.keys(document.jsObjRef)
         .filter(key => key.startsWith(callbackIdPrefix))
         .forEach(key => delete document.jsObjRef[key]);
-}
-
-document.jsCallBackFunctionsReference = {};
-
-document.getCallbackFunc = function (callbackId, sync, sliceArguments) {
-    if (document.jsCallBackFunctionsReference[callbackId] === undefined) {
-        document.jsCallBackFunctionsReference[callbackId] = function () {
-            return document.eventCallback(callbackId,
-                (sliceArguments) ? Array.prototype.slice.call(arguments) : arguments,
-                sync);
-        }
-    }
-
-    return document.jsCallBackFunctionsReference[callbackId];
 }
 
 document.callScriptSafe = function (referenceId, javaScriptToExecute, errorCallBackId) {
