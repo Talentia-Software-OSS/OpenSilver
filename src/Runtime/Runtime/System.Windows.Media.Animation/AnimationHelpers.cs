@@ -14,6 +14,7 @@
 
 
 using CSHTML5.Internal;
+using OpenSilver.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -66,18 +67,18 @@ namespace Windows.UI.Xaml.Media.Animation
 
             string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(domElement);
 
-            object options = CSHTML5.Interop.ExecuteJavaScriptAsync(@"new Object()");
-            string sOptions = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(options);
-            if (callbackForWhenfinished == null)
-            {
-                CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"
-{sOptions}.easing = ""{CSHTML5.Internal.INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(easingFunctionAsString)}"";
-{sOptions}.duration = {duration.ToString(Globalization.CultureInfo.InvariantCulture)};
-{sOptions}.queue = false;
-{sOptions}.queue = ""{visualStateGroupName}"";
-");
-            }
-            else
+            var sb = new StringBuilder();
+            sb.AppendLine("(function(el) {");
+            sb.AppendLine($@"const options = {{
+easing:""{INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(easingFunctionAsString)}"",
+duration:{duration.ToInvariantString()},
+queue:false,
+queue:""{visualStateGroupName}""
+}};");
+
+
+            // Add callback on complete
+            if (callbackForWhenfinished != null)
             {
                 var callbackInfo = new AnimationInfo()
                 {
@@ -86,15 +87,8 @@ namespace Windows.UI.Xaml.Media.Animation
                     Key = visualStateGroupName
                 };
                 animation.RegisterCallback(callbackInfo);
-
-                string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(callbackInfo.Callback);
-                CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"
-{sOptions}.easing = ""{CSHTML5.Internal.INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(easingFunctionAsString)}"";
-{sOptions}.duration = {duration.ToString(Globalization.CultureInfo.InvariantCulture)};
-{sOptions}.queue = false;
-{sOptions}.queue = ""{visualStateGroupName}"";
-{sOptions}.complete = {sAction};
-");
+                string callback = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(callbackInfo.Callback);
+                sb.Append($"options.complete = {callback};");
             }
 
             if (easingFunction != null)
@@ -105,14 +99,19 @@ namespace Windows.UI.Xaml.Media.Animation
                     foreach (string key in additionalOptions.Keys)
                     {
                         string sAdditionalOptions = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(additionalOptions[key]);
-                        CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"{sOptions}[""{CSHTML5.Internal.INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(key)}""] = {sAdditionalOptions};");
-                    }
+                        sb.Append($@"options.{INTERNAL_HtmlDomManager.EscapeStringForUseInJavaScript(key)} = {sAdditionalOptions};");                    }
                 }
             }
 
-            string sValues = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(jsFromToValues);
-            CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"Velocity({sElement}, {sValues}, {sOptions});
-                                                     Velocity.Utilities.dequeue({sElement}, ""{visualStateGroupName}"");");
+            sb.AppendLine($"Velocity(el, {jsFromToValues}, options);");
+            sb.AppendLine($"Velocity.Utilities.dequeue(el, \"{visualStateGroupName}\");");
+            sb.Append($"}})({sElement});");
+            OpenSilver.Interop.ExecuteJavaScriptFastAsync(sb.ToString());
+        }
+
+        internal static void StopVelocity(string domElement, string visualStateGroupName)
+        {
+            OpenSilver.Interop.ExecuteJavaScriptFastAsync($@"Velocity({domElement}, ""stop"", ""{visualStateGroupName}"");");
         }
 
         internal static void ApplyValue(DependencyObject target, PropertyPath propertyPath, object value, bool isVisualStateChange)
