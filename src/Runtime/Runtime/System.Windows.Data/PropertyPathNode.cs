@@ -21,14 +21,14 @@ namespace Windows.UI.Xaml.Data
 {
     internal abstract class PropertyPathNode : IPropertyPathNode
     {
-        private IPropertyPathNodeListener _nodeListener;
+        private WeakReference<IPropertyPathNodeListener> _nodeListener;
         
         protected PropertyPathNode()
         {
             Value = DependencyProperty.UnsetValue;
         }
 
-        public object Source { get; private set; }
+        private WeakReference<object> Source { get; set; }
 
         public object Value { get; private set; }
 
@@ -43,7 +43,8 @@ namespace Windows.UI.Xaml.Data
             IsBroken = isBroken;
             Value = newValue;
 
-            IPropertyPathNodeListener listener = _nodeListener;
+            IPropertyPathNodeListener listener = null;
+            _nodeListener?.TryGetTarget(out listener);
             if (listener != null)
             {
                 listener.ValueChanged(this);
@@ -60,12 +61,13 @@ namespace Windows.UI.Xaml.Data
 
         void IPropertyPathNode.SetSource(object source)
         {
-            object oldSource = Source;
-            Source = source;
+            object oldSource = null;
+            Source?.TryGetTarget(out oldSource);
+            Source = new WeakReference<object>(source);
 
             if (oldSource != Source)
             {
-                OnSourceChanged(oldSource, Source);
+                OnSourceChanged(oldSource, source);
             }
 
             UpdateValue();
@@ -83,15 +85,27 @@ namespace Windows.UI.Xaml.Data
 
         void IPropertyPathNode.Listen(IPropertyPathNodeListener listener)
         {
-            _nodeListener = listener;
+            if (listener != null)
+            {
+                _nodeListener = new WeakReference<IPropertyPathNodeListener>(listener);
+            }
         }
 
         void IPropertyPathNode.Unlisten(IPropertyPathNodeListener listener)
         {
-            if (_nodeListener == listener)
+            IPropertyPathNodeListener existingListener = null;
+            _nodeListener?.TryGetTarget(out existingListener);
+            if (existingListener == listener)
             {
                 _nodeListener = null;
             }
+        }
+
+        protected object GetSourceObj()
+        {
+            object source = null;
+            Source?.TryGetTarget(out source);
+            return source;
         }
     }
 }

@@ -37,7 +37,7 @@ namespace Windows.UI.Xaml.Data
         
         internal override void SetValue(object value)
         {
-            DependencyObject sourceDO = SourceDO;
+            DependencyObject sourceDO = GetSourceDO();
             if (sourceDO != null)
             {
                 sourceDO.SetValue(_dp, value);
@@ -46,7 +46,7 @@ namespace Windows.UI.Xaml.Data
 
         internal override void UpdateValue()
         {
-            DependencyObject sourceDO = SourceDO;
+            DependencyObject sourceDO = GetSourceDO();
             if (sourceDO != null)
             {
                 object value = sourceDO.GetValue(_dp);
@@ -63,7 +63,7 @@ namespace Windows.UI.Xaml.Data
                 listener.Detach();
             }
 
-            DependencyObject sourceDO = SourceDO;
+            DependencyObject sourceDO = GetSourceDO();
             if (sourceDO != null)
             {
                 _dpListener = INTERNAL_PropertyStore.ListenToChanged(
@@ -72,7 +72,10 @@ namespace Windows.UI.Xaml.Data
             }
         }
 
-        private DependencyObject SourceDO => Source as DependencyObject;
+        private DependencyObject GetSourceDO()
+        {
+            return GetSourceObj() as DependencyObject;
+        }
 
         private void OnPropertyChanged(object sender, IDependencyPropertyChangedEventArgs args)
         {

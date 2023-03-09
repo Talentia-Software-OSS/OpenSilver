@@ -51,7 +51,7 @@ namespace Windows.UI.Xaml
 
         #region Visual Parent
 
-        private DependencyObject _parent;
+        private WeakReference<DependencyObject> _parent;
 
         /// <summary>
         /// Returns the parent of this UIElement.
@@ -60,7 +60,9 @@ namespace Windows.UI.Xaml
         {
             get
             {
-                return _parent;
+                DependencyObject parent = null;
+                _parent?.TryGetTarget(out parent);
+                return parent;
             }
         }
 
@@ -129,7 +131,7 @@ namespace Windows.UI.Xaml
 
             // Set the parent pointer.
 
-            child._parent = this;
+            child._parent = new WeakReference<DependencyObject>(this);
 
             child.OnVisualParentChanged(null);
         }
@@ -143,12 +145,12 @@ namespace Windows.UI.Xaml
         /// </summary>
         internal void RemoveVisualChild(UIElement child)
         {
-            if (child == null || child._parent == null)
+            if (child == null || child.INTERNAL_VisualParent == null)
             {
                 return;
             }
 
-            if (child._parent != this)
+            if (child.INTERNAL_VisualParent != this)
             {
                 throw new ArgumentException("Specified UIElement is not a child of this UIElement.");
             }
@@ -172,9 +174,9 @@ namespace Windows.UI.Xaml
         internal virtual void OnVisualParentChanged(DependencyObject oldParent)
         {
             // Synchronize ForceInherit properties
-            if (_parent != null)
+            if (INTERNAL_VisualParent != null)
             {
-                SynchronizeForceInheritProperties(this, _parent);
+                SynchronizeForceInheritProperties(this, INTERNAL_VisualParent);
             }
             else
             {

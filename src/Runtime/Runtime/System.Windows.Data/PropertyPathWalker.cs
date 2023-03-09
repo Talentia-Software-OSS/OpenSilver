@@ -31,7 +31,6 @@ namespace Windows.UI.Xaml.Data
         private readonly bool _isDataContextBound;
         private readonly IPropertyPathNode _firstNode;
         private IPropertyPathWalkerListener _listener;
-        private object _source;
 
         internal PropertyPathWalker(string path, bool isDatacontextBound)
         {
@@ -99,7 +98,6 @@ namespace Windows.UI.Xaml.Data
 
         internal void Update(object source)
         {
-            _source = source;
             _firstNode.SetSource(source);
         }
 

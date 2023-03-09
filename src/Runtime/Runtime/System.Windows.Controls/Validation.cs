@@ -152,7 +152,7 @@ namespace Windows.UI.Xaml.Controls
                 throw new ArgumentNullException("bindingExpression");
             }
 
-            UIElement target = bindingExpression.Target as UIElement;
+            UIElement target = bindingExpression.GetTargetObject() as UIElement;
             if (target != null)
             {
                 if (target.INTERNAL_ValidationErrorsDictionary != null &&
@@ -220,7 +220,7 @@ namespace Windows.UI.Xaml.Controls
                 throw new ArgumentNullException("validationError");
             }
 
-            UIElement target = bindingExpression.Target as UIElement;
+            UIElement target = bindingExpression.GetTargetObject() as UIElement;
             if (target != null)
             {
                 // We remove any previous error because I don't see how we could have 
