@@ -103,9 +103,8 @@ queue:""{visualStateGroupName}""
                 }
             }
 
-            sb.AppendLine($"Velocity(el, {jsFromToValues}, options);");
-            sb.AppendLine($"Velocity.Utilities.dequeue(el, \"{visualStateGroupName}\");");
-            sb.Append($"}})({sElement});");
+            sb.AppendLine($"document.velocityHelpers.animate(el, {jsFromToValues}, options, '{visualStateGroupName}');")
+              .Append($"}})({sElement});");
             OpenSilver.Interop.ExecuteJavaScriptFastAsync(sb.ToString());
         }
 

@@ -695,9 +695,8 @@ element.remove({1});
                 {
                     string sElement = INTERNAL_InteropImplementation.GetVariableStringForJS(domElement);
                     string sCssValue = INTERNAL_InteropImplementation.GetVariableStringForJS(cssValue);
-                    string options = $"duration:1,queue:false, complete: function() {{ setTimeout(function() {{ Velocity.Utilities.removeData({sElement}, ['velocity']); }}, 5); }}";
                     OpenSilver.Interop.ExecuteJavaScriptFastAsync(
-                        $"Velocity({sElement}, {{{string.Join(",", cssPropertyNames.Select(name => $"{name}:{sCssValue}"))}}}, {{{options}}});");
+                        $"document.velocityHelpers.setDomStyle({sElement}, '{string.Join(",", cssPropertyNames)}', {sCssValue});");
                 }
 
             }
