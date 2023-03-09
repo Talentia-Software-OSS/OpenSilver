@@ -12,55 +12,33 @@
 \*====================================================================================*/
 
 using System;
-using System.Windows.Data;
 
 namespace CSHTML5.Internal
 {
     internal static class JavascriptCallbackHelper
     {
-
         public static JavascriptCallback CreateSelfDisposedJavaScriptCallback(Action action)
         {
-            var callback = new JavascriptCallback();
-            callback.Callback = (Action)(() => { action(); callback.Dispose(); });
-            return callback;
+            return new SelfDisposedJavaScriptCallback(action).JSCallback;
         }
 
-        public static JavascriptCallback CreateSelfDisposedJavaScriptCallback<T>(Action<T> action)
+        private sealed class SelfDisposedJavaScriptCallback
         {
-            var callback = new JavascriptCallback();
-            callback.Callback = (Action<T>)((arg) => { action(arg); callback.Dispose(); });
-            return callback;
-        }
+            private readonly Action _action;
+            public readonly JavascriptCallback JSCallback;
 
-        public static JavascriptCallback CreateSelfDisposedJavaScriptCallback<T1, T2>(Action<T1, T2> action)
-        {
-            var callback = new JavascriptCallback();
-            callback.Callback = (Action<T1, T2>)(
-                (arg1, arg2) => { action(arg1, arg2); callback.Dispose(); });
-            return callback;
-        }
+            public SelfDisposedJavaScriptCallback(Action action)
+            {
+                _action = action ?? throw new ArgumentNullException(nameof(action));
 
-        public static JavascriptCallback CreateSelfDisposedJavaScriptCallback<T1, T2, T3>(Action<T1, T2, T3> action)
-        {
-            var callback = new JavascriptCallback();
-            callback.Callback = (Action<T1, T2, T3>)(
-                (arg1, arg2, arg3) => { action(arg1, arg2, arg3); callback.Dispose(); });
-            return callback;
-        }
-        public static JavascriptCallback CreateSelfDisposedJavaScriptCallbackk<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action)
-        {
-            var callback = new JavascriptCallback();
-            callback.Callback = (Action<T1, T2, T3, T4>)(
-                (arg1, arg2, arg3, arg4) => { action(arg1, arg2, arg3, arg4); callback.Dispose(); });
-            return callback;
-        }
-        public static JavascriptCallback CreateSelfDisposedJavaScriptCallback<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action)
-        {
-            var callback = new JavascriptCallback();
-            callback.Callback = (Action<T1, T2, T3, T4, T5>)(
-                (arg1, arg2, arg3, arg4, arg5) => { action(arg1, arg2, arg3, arg4, arg5); callback.Dispose(); });
-            return callback;
+                JSCallback = JavascriptCallback.Create((Action)RunCallbackAndDispose);
+            }
+
+            private void RunCallbackAndDispose()
+            {
+                _action();
+                JSCallback.Dispose();
+            }
         }
     }
 }

@@ -848,7 +848,7 @@ namespace Windows.UI.Xaml
             if (!isAlreadySubscribedToMouseEnterAndLeave && this.INTERNAL_OuterDomElement != null)
             {
                 string sElement = INTERNAL_InteropImplementation.GetVariableStringForJS(this.INTERNAL_OuterDomElement);
-                setIsPointerInsideToTrueCallback = JavascriptCallback.Create((Action)SetIsPointerInsideToTrue);
+                setIsPointerInsideToTrueCallback = JavascriptCallback.CreateWeak((Action)SetIsPointerInsideToTrue);
                 string sAction = INTERNAL_InteropImplementation.GetVariableStringForJS(setIsPointerInsideToTrueCallback);
                 CSHTML5.Interop.ExecuteJavaScript($@"{sElement}.addEventListener(""mouseenter"", {sAction}, false);");
 

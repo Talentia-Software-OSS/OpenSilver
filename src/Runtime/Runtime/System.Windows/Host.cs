@@ -39,7 +39,7 @@ namespace Windows.UI.Xaml // Note: we didn't use the "Interop" namespace to avoi
             _content = new Content(_hookupEvents);
 
             _navigationState = GetBrowserNavigationState();
-            onNavigationChangedCallback = JavascriptCallback.Create((Action)OnNavigationChanged);
+            onNavigationChangedCallback = JavascriptCallback.CreateWeak((Action)OnNavigationChanged);
             OpenSilver.Interop.ExecuteJavaScript("window.addEventListener('hashchange', $0, false)", onNavigationChangedCallback);
         }
 

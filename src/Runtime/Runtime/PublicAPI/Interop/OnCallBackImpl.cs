@@ -12,7 +12,6 @@
 \*====================================================================================*/
 
 using DotNetForHtml5.Core;
-using CSHTML5.Types;
 using System;
 
 #if BRIDGE
@@ -71,14 +70,14 @@ namespace CSHTML5.Internal
             //----------------------------------
             // Get the C# callback from its ID:
             //----------------------------------
-            var callback = JavascriptCallback.Get(callbackId)?.GetCallback();
+            var callback = JavascriptCallback.Get(callbackId);
 
             if (callback == null)
             {
                 return null;
             }
 
-            Type callbackType = callback.GetType();
+            Type callbackType = callback.DelegateType;
             Type[] callbackGenericArgs = null;
             if (callbackType.IsGenericType)
             {
@@ -88,52 +87,43 @@ namespace CSHTML5.Internal
 
             if (callbackType == typeof(Action) || callbackType == typeof(Func<>))
             {
-                return DelegateDynamicInvoke(callback);
+                return callback.InvokeDelegate();
             }
             if (callbackType == typeof(Action<>) || callbackType == typeof(Func<,>))
             {
-                return DelegateDynamicInvoke(callback,
-                    makeArguments(1, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
+                return callback.InvokeDelegate(makeArguments(1, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
             }
             if (callbackType == typeof(Action<,>) || callbackType == typeof(Func<,,>))
             {
-                return DelegateDynamicInvoke(callback,
-                    makeArguments(2, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
+                return callback.InvokeDelegate(makeArguments(2, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
             }
             if (callbackType == typeof(Action<,,>) || callbackType == typeof(Func<,,,>))
             {
-                return DelegateDynamicInvoke(callback,
-                    makeArguments(3, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
+                return callback.InvokeDelegate(makeArguments(3, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
             }
             if (callbackType == typeof(Action<,,,>) || callbackType == typeof(Func<,,,,>))
             {
-                return DelegateDynamicInvoke(callback,
-                    makeArguments(4, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
+                return callback.InvokeDelegate(makeArguments(4, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
             }
             if (callbackType == typeof(Action<,,,,>) || callbackType == typeof(Func<,,,,,>))
             {
-                return DelegateDynamicInvoke(callback,
-                    makeArguments(5, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
+                return callback.InvokeDelegate(makeArguments(5, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
             }
             if (callbackType == typeof(Action<,,,,,>) || callbackType == typeof(Func<,,,,,,>))
             {
-                return DelegateDynamicInvoke(callback,
-                    makeArguments(6, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
+                return callback.InvokeDelegate(makeArguments(6, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
             }
             if (callbackType == typeof(Action<,,,,,,>) || callbackType == typeof(Func<,,,,,,,>))
             {
-                return DelegateDynamicInvoke(callback,
-                    makeArguments(7, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
+                return callback.InvokeDelegate(makeArguments(7, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
             }
             if (callbackType == typeof(Action<,,,,,,,>) || callbackType == typeof(Func<,,,,,,,,>))
             {
-                return DelegateDynamicInvoke(callback,
-                    makeArguments(8, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
+                return callback.InvokeDelegate(makeArguments(8, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
             }
             if (callbackType == typeof(Action<,,,,,,,,>) || callbackType == typeof(Func<,,,,,,,,,>))
             {
-                return DelegateDynamicInvoke(callback,
-                    makeArguments(9, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
+                return callback.InvokeDelegate(makeArguments(9, callbackId, idWhereCallbackArgsAreStored, callbackArgs, callbackGenericArgs));
             }
 
             throw new Exception(string.Format(

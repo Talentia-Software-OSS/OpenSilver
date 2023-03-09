@@ -12,6 +12,7 @@
 \*====================================================================================*/
 
 using System;
+using System.Collections.Generic;
 using CSHTML5.Internal;
 using OpenSilver.Internal;
 using OpenSilver.Internal.Controls;
@@ -31,6 +32,7 @@ namespace Windows.UI.Xaml.Controls
     {
         private object _contentEditableDiv;
         private bool _isUpdatingDOM;
+        private List<HtmlEventProxy> _changeEventsProxy;
 
         internal TextBoxView(TextBox host)
         {
@@ -40,6 +42,7 @@ namespace Windows.UI.Xaml.Controls
             }
 
             Host = host;
+            _changeEventsProxy = new List<HtmlEventProxy>();
         }
 
         internal TextBox Host { get; }
@@ -90,7 +93,7 @@ namespace Windows.UI.Xaml.Controls
             // absorbs pointer events.
 
             string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(this.INTERNAL_OuterDomElement);
-            clickCallback = JavascriptCallback.Create((Action<object>)TextBoxView_GotFocus);
+            clickCallback = JavascriptCallback.CreateWeak((Action<object>)TextBoxView_GotFocus);
             string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(clickCallback);
             OpenSilver.Interop.ExecuteJavaScript($"{sElement}.addEventListener('click', {sAction})");
 
@@ -101,6 +104,7 @@ namespace Windows.UI.Xaml.Controls
         {
             clickCallback?.Dispose();
             clickCallback = null;
+            _changeEventsProxy.Clear();
             base.INTERNAL_OnDetachedFromVisualTree();
         }
 
@@ -478,40 +482,19 @@ sel.addRange(range);
                 //-----------------------
                 this.GotFocus += InternetExplorer_GotFocus;
                 this.LostFocus += InternetExplorer_LostFocus;
-                INTERNAL_EventsHelper.AttachToDomEvents("textinput", contentEditableDiv, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaiseTextChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("paste", contentEditableDiv, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaiseTextChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("cut", contentEditableDiv, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaiseTextChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("keyup", contentEditableDiv, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaiseTextChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("delete", contentEditableDiv, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaiseTextChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("mouseup", contentEditableDiv, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaiseTextChangedIfNecessary();
-                }));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("textinput", contentEditableDiv, InternetExplorer_RaiseTextChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("paste", contentEditableDiv, InternetExplorer_RaiseTextChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("cut", contentEditableDiv, InternetExplorer_RaiseTextChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("keyup", contentEditableDiv, InternetExplorer_RaiseTextChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("delete", contentEditableDiv, InternetExplorer_RaiseTextChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("mouseup", contentEditableDiv, InternetExplorer_RaiseTextChangedIfNecessary));
             }
             else
             {
                 //-----------------------
                 // Modern browsers
                 //-----------------------
-                INTERNAL_EventsHelper.AttachToDomEvents("input", contentEditableDiv, (Action<object>)(e =>
-                {
-                    TextAreaValueChanged();
-                }));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("input", contentEditableDiv, TextAreaValueChanged));
             }
 
             //-----------------------
@@ -868,7 +851,7 @@ element_OutsideEventHandler.addEventListener('paste', function(e) {{
             return outerDiv;
         }
 
-        private void TextAreaValueChanged()
+        private void TextAreaValueChanged(object e)
         {
             //we get the value:
             if (INTERNAL_VisualTreeManager.IsElementInVisualTree(this))
@@ -981,10 +964,10 @@ var range,selection;
 
         private void InternetExplorer_LostFocus(object sender, RoutedEventArgs e)
         {
-            InternetExplorer_RaiseTextChangedIfNecessary();
+            InternetExplorer_RaiseTextChangedIfNecessary(e);
         }
 
-        private void InternetExplorer_RaiseTextChangedIfNecessary()
+        private void InternetExplorer_RaiseTextChangedIfNecessary(object e)
         {
 #if BRIDGE
             string newInnerText = OpenSilver.Interop.ExecuteJavaScript("getTextAreaInnerText($0)", _contentEditableDiv);

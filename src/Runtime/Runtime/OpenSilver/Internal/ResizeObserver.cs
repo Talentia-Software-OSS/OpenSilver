@@ -101,6 +101,8 @@ namespace OpenSilver.Internal
             private bool _isObserved;
             private object _resizeSensor;
 
+            private JavascriptCallback _observeCallback;
+
             /// <summary>
             /// Initializes a new instance of the <see cref="ResizeSensorAdapter"/>.
             /// </summary>
@@ -117,8 +119,9 @@ namespace OpenSilver.Internal
                 {
                     _isObserved = true;
 
+                    _observeCallback = JavascriptCallback.Create(new Action<string>((string arg) => callback(ParseSize(arg))));
                     string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(elementReference);
-                    string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(new Action<string>((string arg) => callback(ParseSize(arg))));
+                    string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(_observeCallback);
 
                     _resizeSensor = OpenSilver.Interop.ExecuteJavaScript($"new ResizeSensor({sElement}, {sAction})");
                 }
@@ -133,6 +136,8 @@ namespace OpenSilver.Internal
 
                     string sSensor = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(_resizeSensor);
                     _resizeSensor = null;
+                    _observeCallback.Dispose();
+                    _observeCallback = null;
 
                     string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(elementReference);
                     OpenSilver.Interop.ExecuteJavaScript($"{sSensor}.detach({sElement})");
@@ -161,7 +166,6 @@ namespace OpenSilver.Internal
 
             public bool IsObserved => _isObserved;
 
-
             /// <inheritdoc />
             public void Observe(object elementReference, Action<Size> callback)
             {
@@ -171,7 +175,6 @@ namespace OpenSilver.Internal
                 {
                     _isObserved = true;
                     _observeCallback = JavascriptCallback.Create(new Action<string>((string arg) => callback(ParseSize(arg))));
-
                     string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(elementReference);
                     string sAction = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(_observeCallback);
 
@@ -187,6 +190,7 @@ namespace OpenSilver.Internal
                 if (_isObserved)
                 {
                     _isObserved = false;
+                    _observeCallback.Dispose();
                     _observeCallback = null;
 
                     string sElement = CSHTML5.INTERNAL_InteropImplementation.GetVariableStringForJS(elementReference);

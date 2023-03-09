@@ -337,10 +337,14 @@ document.eventCallback = function (callbackId, arguments, sync) {
 }
 
 document.cleanupCallbackFunc = function (callbackId) {
-    const callbackIdPrefix = document.getCallbackArgsPrefix(callbackId);
-    Object.keys(document.jsObjRef)
-        .filter(key => key.startsWith(callbackIdPrefix))
-        .forEach(key => delete document.jsObjRef[key]);
+
+    // Trigger cleanup later to allow for event handling
+    setTimeout(() => {
+        const callbackIdPrefix = document.getCallbackArgsPrefix(callbackId);
+        Object.keys(document.jsObjRef)
+            .filter(key => key.startsWith(callbackIdPrefix))
+            .forEach(key => delete document.jsObjRef[key]);
+        }, 1000);
 }
 
 document.callScriptSafe = function (referenceId, javaScriptToExecute, errorCallBackId) {

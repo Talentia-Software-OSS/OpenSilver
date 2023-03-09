@@ -114,7 +114,7 @@ namespace CSHTML5
                 //-----------
                 // Delegates
                 //-----------
-                var jsCallback = JavascriptCallback.Create((Delegate)variable);
+                var jsCallback = JavascriptCallback.CreateWeak((Delegate)variable);
                 return GetJavascriptCallbackVariableStringForJS(jsCallback);
             }
             else if (variable == null)
@@ -141,7 +141,7 @@ namespace CSHTML5
         internal static string GetJavascriptCallbackVariableStringForJS(JavascriptCallback jsCallback)
         {
             // Add the callback to the document:
-            var isVoid = jsCallback.GetCallback().Method.ReturnType == typeof(void);
+            var isVoid = jsCallback.ReturnType == typeof(void);
             return string.Format(
                                    @"(function() {{ return document.eventCallback({0}, {1}, {2});}})", jsCallback.Id,
 #if OPENSILVER

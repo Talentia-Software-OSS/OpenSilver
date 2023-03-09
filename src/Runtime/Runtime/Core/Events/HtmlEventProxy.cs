@@ -78,14 +78,14 @@ namespace CSHTML5.Internal
         {
             if (sync)
             {
-                return JavascriptCallback.Create(new Func<object, string>(jsEventArg =>
+                return JavascriptCallback.CreateWeak(new Func<object, string>(jsEventArg =>
                 {
                     OnEventImpl(jsEventArg);
                     return "";
                 }));
             }
 
-            return JavascriptCallback.Create(new Action<object>(jsEventArg => OnEventImpl(jsEventArg)));
+            return JavascriptCallback.CreateWeak(new Action<object>(jsEventArg => OnEventImpl(jsEventArg)));
         }
 
         public void Dispose()

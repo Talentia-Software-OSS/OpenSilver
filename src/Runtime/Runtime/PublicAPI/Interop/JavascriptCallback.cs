@@ -13,6 +13,7 @@
 
 
 using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Windows;
 
@@ -22,34 +23,24 @@ namespace CSHTML5.Internal
     {
         private static readonly SynchronizedStore<JavascriptCallback> _store = new SynchronizedStore<JavascriptCallback>();
 
+        private MethodInfo _delegateInfo;
+        private WeakReference _delegateTarget;
+        private Delegate _delegate;
+        private bool _isStaticTarget;
+
         public int Id { get; private set; }
+        public Type ReturnType { get; private set; }
+        public Type DelegateType { get; private set; }
 
-        public Delegate Callback { get; set; }
-
-        public WeakReference<Delegate> CallbackWeakReference { get; set; }
-
-        public static JavascriptCallback Create(Delegate callback)
-        {
-            var jc = new JavascriptCallback
-            {
-                Callback = callback
-            };
-            jc.Id = _store.Add(jc);
-
-            //Console.WriteLine("{0} => {1}.{2}", jc.Id, callback.Method.ReflectedType.FullName, callback.Method.Name);
-
-            return jc;
-        }
 
         public static JavascriptCallback CreateWeak(Delegate callback)
         {
-            var jc = new JavascriptCallback
-            {
-                CallbackWeakReference = new WeakReference<Delegate>(callback)
-            };
-            jc.Id = _store.Add(jc);
+            return new JavascriptCallback(callback);
+        }
 
-            return jc;
+        public static JavascriptCallback Create(Delegate callback)
+        {
+            return new JavascriptCallback(callback, false);
         }
 
         public static JavascriptCallback Get(int index)
@@ -57,22 +48,63 @@ namespace CSHTML5.Internal
             return _store.Get(index);
         }
 
-        public Delegate GetCallback()
+        private JavascriptCallback(Delegate callback)
+            :this(callback, true)
+        { 
+        }
+
+        private JavascriptCallback(Delegate callback, bool createWeak)
         {
-            if (Callback != null)
+            Id = _store.Add(this);
+            DelegateType = callback.GetType();
+            ReturnType = callback.Method.ReturnType;
+
+            // Create hard links for Dynamic classes
+            if (createWeak && callback.Target != null && IsGeneratedClass(callback.Target.GetType()))
             {
-                return Callback;
+                createWeak = false;
             }
 
-            if (CallbackWeakReference.TryGetTarget(out var callback))
+            if (createWeak)
             {
-                return callback;
+                _isStaticTarget = callback.Target == null;
+                _delegateTarget = new WeakReference(callback.Target);
+                _delegateInfo = callback.Method;
             }
+            else
+            {
+                _delegate = callback;
+            }
+        }
 
-            _store.Clean(Id);
-            Clean();
+        /// <summary>
+        /// Detect Dynamic types generated when creating an action that only survives in a given context
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        private bool IsGeneratedClass(Type type)
+        {
+            return type.Name.Contains("DisplayClass");
+        }
 
-            return null;
+        public object InvokeDelegate(params object[] args)
+        {
+            if (_delegate != null)
+            {
+                return _delegate.DynamicInvoke(args);
+            }
+            else
+            {
+                if (null != _delegateTarget.Target)
+                {
+                    return _delegateInfo.Invoke(_delegateTarget.Target, args);
+                }
+                else if (_isStaticTarget)
+                {
+                    return _delegateInfo.Invoke(null, args);
+                }
+                return null;
+            }
         }
 
         public void Dispose()
@@ -83,6 +115,8 @@ namespace CSHTML5.Internal
         public void Clean()
         {
             _store.Clean(Id);
+            _delegate = null;
+            _delegateTarget = null;
             OpenSilver.Interop.ExecuteJavaScriptFastAsync($"document.cleanupCallbackFunc({Id})");
         }
     }

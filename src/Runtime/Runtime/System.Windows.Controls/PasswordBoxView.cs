@@ -12,6 +12,7 @@
 \*====================================================================================*/
 
 using System;
+using System.Collections.Generic;
 using CSHTML5.Internal;
 using OpenSilver.Internal.Controls;
 
@@ -25,6 +26,7 @@ namespace Windows.UI.Xaml.Controls
     {
         private object _passwordInputField;
         private bool _isUpdatingDOM;
+        private List<HtmlEventProxy> _changeEventsProxy;
 
         internal PasswordBoxView(PasswordBox host)
         {
@@ -34,6 +36,7 @@ namespace Windows.UI.Xaml.Controls
             }
 
             Host = host;
+            _changeEventsProxy = new List<HtmlEventProxy>();
         }
 
         internal PasswordBox Host { get; }
@@ -78,6 +81,11 @@ namespace Windows.UI.Xaml.Controls
             OpenSilver.Interop.ExecuteJavaScript(@"$0.addEventListener('click', $1)", this.INTERNAL_OuterDomElement, (Action<object>)PasswordBox_GotFocus);
 
             UpdateDOMPassword(Host.Password);
+        }
+        protected internal override void INTERNAL_OnDetachedFromVisualTree()
+        {
+            base.INTERNAL_OnDetachedFromVisualTree();
+            _changeEventsProxy.Clear();
         }
 
         internal override bool EnablePointerEventsCore => true;
@@ -138,40 +146,19 @@ namespace Windows.UI.Xaml.Controls
                 //-----------------------
                 this.GotFocus += InternetExplorer_GotFocus;
                 this.LostFocus += InternetExplorer_LostFocus;
-                INTERNAL_EventsHelper.AttachToDomEvents("textinput", passwordField, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaisePasswordChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("paste", passwordField, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaisePasswordChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("cut", passwordField, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaisePasswordChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("keyup", passwordField, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaisePasswordChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("delete", passwordField, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaisePasswordChangedIfNecessary();
-                }));
-                INTERNAL_EventsHelper.AttachToDomEvents("mouseup", passwordField, (Action<object>)(e =>
-                {
-                    InternetExplorer_RaisePasswordChangedIfNecessary();
-                }));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("textinput", passwordField, InternetExplorer_RaisePasswordChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("paste", passwordField, InternetExplorer_RaisePasswordChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("cut", passwordField, InternetExplorer_RaisePasswordChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("keyup", passwordField, InternetExplorer_RaisePasswordChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("delete", passwordField, InternetExplorer_RaisePasswordChangedIfNecessary));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("mouseup", passwordField, InternetExplorer_RaisePasswordChangedIfNecessary));
             }
             else
             {
                 //-----------------------
                 // Modern browsers
                 //-----------------------
-                INTERNAL_EventsHelper.AttachToDomEvents("input", passwordField, (Action<object>)(e =>
-                {
-                    PasswordAreaValueChanged();
-                }));
+                _changeEventsProxy.Add(INTERNAL_EventsHelper.AttachToDomEvents("input", passwordField, PasswordAreaValueChanged));
             }
 
             return passwordField;
@@ -198,10 +185,10 @@ namespace Windows.UI.Xaml.Controls
 
         private void InternetExplorer_LostFocus(object sender, RoutedEventArgs e)
         {
-            InternetExplorer_RaisePasswordChangedIfNecessary();
+            InternetExplorer_RaisePasswordChangedIfNecessary(e);
         }
 
-        private void InternetExplorer_RaisePasswordChangedIfNecessary()
+        private void InternetExplorer_RaisePasswordChangedIfNecessary(object e)
         {
 #if BRIDGE //todo: fixme
             string newInnerText = Convert.ToString(OpenSilver.Interop.ExecuteJavaScript("$0['value'] || ''", this.INTERNAL_InnerDomElement));
@@ -213,7 +200,7 @@ namespace Windows.UI.Xaml.Controls
 #endif
         }
 
-        private void PasswordAreaValueChanged()
+        private void PasswordAreaValueChanged(object e)
         {
             if (INTERNAL_VisualTreeManager.IsElementInVisualTree(this))
             {
