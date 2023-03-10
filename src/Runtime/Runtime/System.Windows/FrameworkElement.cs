@@ -183,30 +183,13 @@ namespace Windows.UI.Xaml
 
         #region Logical Parent
 
-        private WeakReference<DependencyObject> _parent;
-
         /// <summary>
         /// Gets the parent object of this FrameworkElement in the object tree.
         /// </summary>
         public DependencyObject Parent
         {
-            get
-            {
-                DependencyObject parent = null;
-                _parent?.TryGetTarget(out parent);
-                return parent;
-            }
-            private set
-            {
-                if (value == null)
-                {
-                    _parent = null;
-                }
-                else
-                {
-                    _parent = new WeakReference<DependencyObject> (value);
-                }
-            }
+            get;
+            private set;
         }
 
         internal void AddLogicalChild(object child)

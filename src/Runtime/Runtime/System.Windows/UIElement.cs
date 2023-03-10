@@ -51,7 +51,7 @@ namespace Windows.UI.Xaml
 
         #region Visual Parent
 
-        private WeakReference<DependencyObject> _parent;
+        private DependencyObject _parent;
 
         /// <summary>
         /// Returns the parent of this UIElement.
@@ -60,9 +60,7 @@ namespace Windows.UI.Xaml
         {
             get
             {
-                DependencyObject parent = null;
-                _parent?.TryGetTarget(out parent);
-                return parent;
+                return _parent;
             }
         }
 
@@ -131,7 +129,7 @@ namespace Windows.UI.Xaml
 
             // Set the parent pointer.
 
-            child._parent = new WeakReference<DependencyObject>(this);
+            child._parent = this;
 
             child.OnVisualParentChanged(null);
         }
