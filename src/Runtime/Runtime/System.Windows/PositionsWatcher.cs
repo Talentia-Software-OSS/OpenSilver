@@ -67,6 +67,7 @@ namespace Windows.UI.Xaml
                 Point elementCurrentPosition = INTERNAL_PopupsManager.GetUIElementAbsolutePosition(controlToWatch.ControltoWatch);
                 Size elementCurrentSize;
                 FrameworkElement control = controlToWatch.ControltoWatch as FrameworkElement;
+                Action<Point, Size> onPositionOrSizeChanged = controlToWatch.OnPositionOrSizeChanged;
                 if (control != null)
                 {
                     elementCurrentSize = control.INTERNAL_GetActualWidthAndHeightUsinggetboudingClientRect();
@@ -76,12 +77,19 @@ namespace Windows.UI.Xaml
                     elementCurrentSize = new Size();
                 }
 
-                if (elementCurrentPosition != controlToWatch.PreviousPosition ||
-                    !INTERNAL_SizeComparisonHelpers.AreSizesEqual(elementCurrentSize, controlToWatch.PreviousSize))
+                if (!controlToWatch.IsDisposed)
                 {
-                    controlToWatch.OnPositionOrSizeChanged(elementCurrentPosition, elementCurrentSize);
-                    controlToWatch.PreviousPosition = elementCurrentPosition;
-                    controlToWatch.PreviousSize = elementCurrentSize;
+                    if (elementCurrentPosition != controlToWatch.PreviousPosition ||
+                        !INTERNAL_SizeComparisonHelpers.AreSizesEqual(elementCurrentSize, controlToWatch.PreviousSize))
+                    {
+                        onPositionOrSizeChanged(elementCurrentPosition, elementCurrentSize);
+                        controlToWatch.PreviousPosition = elementCurrentPosition;
+                        controlToWatch.PreviousSize = elementCurrentSize;
+                    }
+                }
+                else
+                {
+                    RemoveControlToWatch(controlToWatch);
                 }
             }
         }
