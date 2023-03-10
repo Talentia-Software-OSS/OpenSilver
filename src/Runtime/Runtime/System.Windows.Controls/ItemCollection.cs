@@ -11,12 +11,13 @@
 *  
 \*====================================================================================*/
 
-using OpenSilver.Internal.Controls;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using OpenSilver.Internal;
+using OpenSilver.Internal.Controls;
 
 #if MIGRATION
 namespace System.Windows.Controls
@@ -28,6 +29,7 @@ namespace Windows.UI.Xaml.Controls
     {
         private bool _isUsingItemsSource;
         private IEnumerable _itemsSource; // base collection
+        private WeakEventListener<ItemCollection, INotifyCollectionChanged, NotifyCollectionChangedEventArgs> _collectionChangedListener;
 
         private bool _isUsingListWrapper;
         private EnumerableWrapper _listWrapper;
@@ -71,7 +73,7 @@ namespace Windows.UI.Xaml.Controls
             {
                 this.ClearModelParent(item);
             }
-            
+
             this.ClearInternal();
         }
 
@@ -236,13 +238,13 @@ namespace Windows.UI.Xaml.Controls
                 throw new InvalidOperationException("Items collection must be empty before using ItemsSource.");
             }
 
-            this.TryUnsubscribeFromCollectionChangedEvent(this._itemsSource);
+            this.TryUnsubscribeFromCollectionChangedEvent();
 
             this._itemsSource = value;
             this._isUsingItemsSource = true;
 
             this.TrySubscribeToCollectionChangedEvent(value);
-            
+
             this.InitializeSourceList(value);
 
             this.UpdateCountProperty();
@@ -255,7 +257,7 @@ namespace Windows.UI.Xaml.Controls
             if (this.IsUsingItemsSource)
             {
                 // return to normal mode
-                this.TryUnsubscribeFromCollectionChangedEvent(this._itemsSource);
+                this.TryUnsubscribeFromCollectionChangedEvent();
 
                 this._itemsSource = null;
                 this._listWrapper = null;
@@ -302,6 +304,7 @@ namespace Windows.UI.Xaml.Controls
                     break;
 
                 case NotifyCollectionChangedAction.Replace:
+                case NotifyCollectionChangedAction.Move:
                     if (e.NewItems.Count != 1 || e.OldItems.Count != 1)
                     {
                         throw new NotSupportedException("Range actions are not supported.");
@@ -330,6 +333,9 @@ namespace Windows.UI.Xaml.Controls
                         break;
                     case NotifyCollectionChangedAction.Remove:
                         this._listWrapper.RemoveAt(e.OldStartingIndex);
+                        break;
+                    case NotifyCollectionChangedAction.Move:
+                        this._listWrapper.Move(e.OldStartingIndex, e.NewStartingIndex);
                         break;
                     case NotifyCollectionChangedAction.Replace:
                         this._listWrapper[e.OldStartingIndex] = e.NewItems[0];
@@ -364,19 +370,22 @@ namespace Windows.UI.Xaml.Controls
 
         private void TrySubscribeToCollectionChangedEvent(IEnumerable collection)
         {
-            INotifyCollectionChanged incc = collection as INotifyCollectionChanged;
-            if (incc != null)
+            if (collection is INotifyCollectionChanged incc)
             {
-                incc.CollectionChanged += new NotifyCollectionChangedEventHandler(this.OnSourceCollectionChanged);
+                _collectionChangedListener = new(this, incc,
+                    static (instance, source, args) => instance.OnSourceCollectionChanged(source, args),
+                    static (listener, source) => source.CollectionChanged -= listener.OnEvent
+                );
+                incc.CollectionChanged += _collectionChangedListener.OnEvent;
             }
         }
 
-        private void TryUnsubscribeFromCollectionChangedEvent(IEnumerable collection)
+        private void TryUnsubscribeFromCollectionChangedEvent()
         {
-            INotifyCollectionChanged incc = collection as INotifyCollectionChanged;
-            if (incc != null)
+            if (_collectionChangedListener != null)
             {
-                incc.CollectionChanged -= new NotifyCollectionChangedEventHandler(this.OnSourceCollectionChanged);
+                _collectionChangedListener.Detach();
+                _collectionChangedListener = null;
             }
         }
 
@@ -404,6 +413,19 @@ namespace Windows.UI.Xaml.Controls
                 {
                     this.Add(enumerator.Current);
                 }
+            }
+
+            public void Move(int oldIndex, int newIndex)
+            {
+                if (oldIndex == newIndex)
+                {
+                    return;
+                }
+
+                var item = this[oldIndex];
+
+                this.RemoveAt(oldIndex);
+                this.Insert(newIndex, item);
             }
         }
     }

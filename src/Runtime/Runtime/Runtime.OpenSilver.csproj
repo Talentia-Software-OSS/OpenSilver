@@ -19,6 +19,7 @@
 		<EnableDefaultItems>false</EnableDefaultItems> <!-- This emluates the behavior of NET Framework, which excludes every files by default -->
 		<OpenSilverVersion>1.0.0</OpenSilverVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>9.0</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'SL|AnyCPU' ">
@@ -64,6 +65,7 @@
       <Link>OpenSilver\Internal\XamlResourcesHelper.cs</Link>
     </Compile>
     <Compile Include="OpenSilver\Internal\TokenizerHelper.cs" />
+    <Compile Include="OpenSilver\Internal\WeakEventListener.cs" />
 		<Compile Include="OpenSilver\NotImplementedAttribute.cs" />
 		<Compile Include="PagedCollectionView\CollectionViewGroupInternal.cs" />
 		<Compile Include="PagedCollectionView\CollectionViewGroupRoot.cs" />
