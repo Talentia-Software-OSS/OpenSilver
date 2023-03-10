@@ -132,6 +132,10 @@ namespace Windows.UI.Xaml.Data
 
         protected object GetBindingSource()
         {
+            if (null == _bindingSource)
+            {
+                return null;
+            }
             _bindingSource.TryGetTarget(out object bindingSourceObject);
             return bindingSourceObject;
         }
