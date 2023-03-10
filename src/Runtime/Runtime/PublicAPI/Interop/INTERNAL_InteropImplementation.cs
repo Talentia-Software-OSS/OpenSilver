@@ -474,8 +474,7 @@ img.src = {sHtml5Path};");
     internal class SynchronizedStore<T>
     {
         private static readonly ReferenceIDGenerator _refIdGenerator = new ReferenceIDGenerator();
-
-        private readonly object _lock = new object();
+        private static readonly object _lock = new object();
         private readonly Dictionary<int, T> _items;
 
         public SynchronizedStore()
@@ -495,7 +494,10 @@ img.src = {sHtml5Path};");
 
         public void Clean(int index)
         {
-            _items.Remove(index);
+            lock (_lock)
+            {
+                _items.Remove(index);
+            }
         }
 
 
