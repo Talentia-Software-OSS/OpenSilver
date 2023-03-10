@@ -27,6 +27,7 @@ namespace CSHTML5.Internal
         private WeakReference _delegateTarget;
         private Delegate _delegate;
         private bool _isStaticTarget;
+        private bool _isDisposed;
 
         public int Id { get; private set; }
         public Type ReturnType { get; private set; }
@@ -107,6 +108,11 @@ namespace CSHTML5.Internal
             }
         }
 
+        ~JavascriptCallback()
+        {
+            Dispose();
+        }
+
         public void Dispose()
         {
             Clean();
@@ -114,10 +120,14 @@ namespace CSHTML5.Internal
 
         public void Clean()
         {
-            _store.Clean(Id);
-            _delegate = null;
-            _delegateTarget = null;
-            OpenSilver.Interop.ExecuteJavaScriptFastAsync($"document.cleanupCallbackFunc({Id})");
+            if (!_isDisposed)
+            {
+                _store.Clean(Id);
+                _delegate = null;
+                _delegateTarget = null;
+                OpenSilver.Interop.ExecuteJavaScriptFastAsync($"document.cleanupCallbackFunc({Id})");
+                _isDisposed = true;
+            }
         }
     }
 }

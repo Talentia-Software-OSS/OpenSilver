@@ -191,7 +191,7 @@ namespace CSHTML5
             }
 
             // Change the JS code to call ShowErrorMessage in case of error:
-            string errorCallBackId = _javascriptCallsStore.Add(unmodifiedJavascript).ToString();
+            var errorCallBackId = _javascriptCallsStore.Add(unmodifiedJavascript);
 
             // Surround the javascript code with some code that will store the
             // result into the "document.jsObjRef" for later
@@ -204,6 +204,7 @@ namespace CSHTML5
             if (!runAsynchronously)
             {
                 value = CastFromJsValue(INTERNAL_HtmlDomManager.ExecuteJavaScriptWithResult(javascript, noImpactOnPendingJSCode: noImpactOnPendingJSCode));
+                _javascriptCallsStore.Clean(errorCallBackId);
             }
             else
             {
@@ -243,6 +244,7 @@ namespace CSHTML5
 ", str, errorMessage);
                 Console.WriteLine(message);
             }
+            _javascriptCallsStore.Clean(indexOfCallInList);
         }
 
 #if BRIDGE
