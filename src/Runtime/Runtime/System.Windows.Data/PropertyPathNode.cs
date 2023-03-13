@@ -11,6 +11,7 @@
 *  
 \*====================================================================================*/
 
+using OpenSilver.Internal;
 using System;
 
 #if MIGRATION
@@ -21,7 +22,7 @@ namespace Windows.UI.Xaml.Data
 {
     internal abstract class PropertyPathNode : IPropertyPathNode
     {
-        private IPropertyPathNodeListener _nodeListener;
+        private WeakReference<IPropertyPathNodeListener> _nodeListener;
         
         protected PropertyPathNode()
         {
@@ -43,8 +44,7 @@ namespace Windows.UI.Xaml.Data
             IsBroken = isBroken;
             Value = newValue;
 
-            IPropertyPathNodeListener listener = _nodeListener;
-            if (listener != null)
+            if (_nodeListener != null && _nodeListener.TryGetTarget(out IPropertyPathNodeListener listener))
             {
                 listener.ValueChanged(this);
             }
@@ -83,14 +83,17 @@ namespace Windows.UI.Xaml.Data
 
         void IPropertyPathNode.Listen(IPropertyPathNodeListener listener)
         {
-            _nodeListener = listener;
+            _nodeListener = new WeakReference<IPropertyPathNodeListener>(listener);
         }
 
         void IPropertyPathNode.Unlisten(IPropertyPathNodeListener listener)
         {
-            if (_nodeListener == listener)
+            if (_nodeListener != null && _nodeListener.TryGetTarget(out IPropertyPathNodeListener lst))
             {
-                _nodeListener = null;
+                if (lst == listener)
+                {
+                    _nodeListener = null;
+                }
             }
         }
     }
