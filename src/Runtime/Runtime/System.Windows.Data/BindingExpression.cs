@@ -51,14 +51,14 @@ namespace Windows.UI.Xaml.Data
         private bool _isAttaching;
         private IPropertyChangedListener _propertyListener;
         private DynamicValueConverter _dynamicConverter;
-        private WeakReference<object> _bindingSource;
+        private object _bindingSource;
 
         private readonly PropertyPathWalker _propertyPathWalker;
 
         internal BindingExpression(Binding binding, DependencyObject target, DependencyProperty property)
             : this(binding, property)
         {
-            Target = new WeakReference<DependencyObject>(target);
+            Target = target;
         }
 
         internal BindingExpression(Binding binding, DependencyProperty property)
@@ -97,58 +97,14 @@ namespace Windows.UI.Xaml.Data
                 if (ParentBinding.ElementName == null &&
                     ParentBinding.Source == null &&
                     ParentBinding.RelativeSource == null &&
-                    GetBindingSource() is FrameworkElement sourceFE)
+                    _bindingSource is FrameworkElement sourceFE)
                 {
                     // Note: In the BindingExpression, we set the Source to the
                     // FrameworkElement and added the DataContext in the Path
                     return sourceFE.DataContext;
                 }
 
-                return GetBindingSource();
-            }
-        }
-
-        internal DependencyObject GetTargetObject()
-        {
-            DependencyObject target = null;
-            if (Target != null)
-            {
-                if (!Target.TryGetTarget(out target))
-                {
-                    IsAttached = false;
-
-                    if (_propertyListener != null)
-                    {
-                        _propertyListener.Detach();
-                        _propertyListener = null;
-                    }
-
-                    _propertyPathWalker.Update(null);
-                    Target = null;
-                }
-            }
-            return target;
-        }
-
-        protected object GetBindingSource()
-        {
-            if (null == _bindingSource)
-            {
-                return null;
-            }
-            _bindingSource.TryGetTarget(out object bindingSourceObject);
-            return bindingSourceObject;
-        }
-
-        protected void SetBindingSource(object source)
-        {
-            if (source == null)
-            {
-                _bindingSource = null;
-            }
-            else
-            {
-                _bindingSource = new WeakReference<object>(source);
+                return _bindingSource;
             }
         }
 
@@ -167,11 +123,7 @@ namespace Windows.UI.Xaml.Data
             // in the remark.
             if (!IsUpdating && ParentBinding.Mode == BindingMode.TwoWay) 
             {
-                var target = GetTargetObject();
-                if (target != null)
-                {
-                    UpdateSourceObject(target.GetValue(TargetProperty));
-                }
+                UpdateSourceObject(Target.GetValue(TargetProperty));
             }
         }
 
@@ -264,19 +216,19 @@ namespace Windows.UI.Xaml.Data
 
             _isAttaching = IsAttached = true;
 
-            Target = new WeakReference<DependencyObject>(d);
+            Target = d;
 
             FindSource();
 
             // FindSource should find the source now. Otherwise, the PropertyPathNodes
             // shoud do the work (their properties will change when the source will
             // become available)
-            _propertyPathWalker.Update(GetBindingSource());
+            _propertyPathWalker.Update(_bindingSource);
 
             //Listen to changes on the Target if the Binding is TwoWay:
             if (ParentBinding.Mode == BindingMode.TwoWay)
             {
-                _propertyListener = INTERNAL_PropertyStore.ListenToChanged(d, TargetProperty, UpdateSourceCallback);
+                _propertyListener = INTERNAL_PropertyStore.ListenToChanged(Target, TargetProperty, UpdateSourceCallback);
 
                 // If the user wants to force the Validation of the value when the element
                 // is added to the Visual tree, we set a boolean to do it as soon as possible:
@@ -304,7 +256,7 @@ namespace Windows.UI.Xaml.Data
 
             _propertyPathWalker.Update(null);
 
-            d.InheritedContextChanged -= new EventHandler(OnTargetInheritedContextChanged);
+            Target.InheritedContextChanged -= new EventHandler(OnTargetInheritedContextChanged);
             Target = null;
         }
 
@@ -313,7 +265,7 @@ namespace Windows.UI.Xaml.Data
         /// <summary>
         /// The element that is the binding target object of this binding expression.
         /// </summary>
-        internal WeakReference<DependencyObject> Target { get; private set; }
+        internal DependencyObject Target { get; private set; }
 
         /// <summary>
         /// This method is used to check whether the value is Valid if needed.
@@ -354,9 +306,9 @@ namespace Windows.UI.Xaml.Data
         internal void OnSourceAvailable()
         {
             FindSource();
-            if (GetBindingSource() != null)
+            if (_bindingSource != null)
             {
-                _propertyPathWalker.Update(GetBindingSource());
+                _propertyPathWalker.Update(_bindingSource);
             }
 
             //Target.SetValue(Property, this); // Read note below
@@ -618,32 +570,28 @@ namespace Windows.UI.Xaml.Data
 
         private void OnTargetInheritedContextChanged(object sender, EventArgs e)
         {
-            var target = GetTargetObject();
-            if (target != null)
-            {
-                target.InheritedContextChanged -= new EventHandler(OnTargetInheritedContextChanged);
-                OnSourceAvailable();
-            }
+            Target.InheritedContextChanged -= new EventHandler(OnTargetInheritedContextChanged);
+            OnSourceAvailable();
         }
 
         private void FindSource()
         {
             if (ParentBinding.Source != null)
             {
-                SetBindingSource(ParentBinding.Source);
+                _bindingSource = ParentBinding.Source;
             }
             else if (ParentBinding.ElementName != null)
             {
-               SetBindingSource((GetTargetObject() as FrameworkElement)?.FindName(ParentBinding.ElementName));
+                _bindingSource = (Target as FrameworkElement)?.FindName(ParentBinding.ElementName);
             }
             else if (ParentBinding.RelativeSource != null)
             {
-                SetBindingSource(FindRelativeSource(this));
+                _bindingSource = FindRelativeSource(this);
             }
             else
             {
                 // DataContext
-                if (GetTargetObject() is FrameworkElement targetFE)
+                if (Target is FrameworkElement targetFE)
                 {
                     DependencyObject contextElement = targetFE;
 
@@ -659,16 +607,12 @@ namespace Windows.UI.Xaml.Data
                         contextElement = targetFE.Parent ?? VisualTreeHelper.GetParent(targetFE);
                     }
 
-                    SetBindingSource(contextElement);
+                    _bindingSource = contextElement;
                 }
                 else
                 {
-                    var target = GetTargetObject();
-                    if (target != null)
-                    {
-                        target.InheritedContextChanged += new EventHandler(OnTargetInheritedContextChanged);
-                        SetBindingSource(FrameworkElement.FindMentor(target));
-                    }
+                    Target.InheritedContextChanged += new EventHandler(OnTargetInheritedContextChanged);
+                    _bindingSource = FrameworkElement.FindMentor(Target);
                 }
             }
         }
@@ -692,7 +636,7 @@ namespace Windows.UI.Xaml.Data
                     return null;
 
                 case RelativeSourceMode.FindAncestor:
-                    return FindAncestor(expr.GetTargetObject(), relativeSource);
+                    return FindAncestor(expr.Target, relativeSource);
 
                 case RelativeSourceMode.None:
                 default:
@@ -740,7 +684,7 @@ namespace Windows.UI.Xaml.Data
             try
             {
                 if (!IsUpdating && ParentBinding.UpdateSourceTrigger != UpdateSourceTrigger.Explicit)
-                    UpdateSourceObject(GetTargetObject().GetValue(TargetProperty));
+                    UpdateSourceObject(Target.GetValue(TargetProperty));
             }
             catch (Exception err)
             {
@@ -757,7 +701,7 @@ namespace Windows.UI.Xaml.Data
             {
                 bool oldIsUpdating = IsUpdating;
                 IsUpdating = true;
-                GetTargetObject().ApplyExpression(TargetProperty, this, ParentBinding._isInStyle);
+                Target.ApplyExpression(TargetProperty, this, ParentBinding._isInStyle);
 
                 IsUpdating = oldIsUpdating;
             }

@@ -75,39 +75,25 @@ namespace Windows.UI.Xaml.Data
 
         internal override void SetValue(object value)
         {
-            object source = GetSourceObj();
-            if (source == null)
-            {
-                Unsubscribe();
-                return;
-            }
-
             if (_dp != null)
             {
-                ((DependencyObject)source).SetValue(_dp, value);
+                ((DependencyObject)Source).SetValue(_dp, value);
             }
             else if (_prop != null)
             {
-                _prop.SetValue(source, value);
+                _prop.SetValue(Source, value);
             }
             else if (_field != null)
             {
-                _field.SetValue(source, value);
+                _field.SetValue(Source, value);
             }
         }
 
         internal override void UpdateValue()
         {
-            object source = GetSourceObj();
-            if (source == null)
-            {
-                Unsubscribe();
-                return;
-            }
-
             if (_dp != null)
             {
-                UpdateValueAndIsBroken(((DependencyObject)source).GetValue(_dp), CheckIsBroken());
+                UpdateValueAndIsBroken(((DependencyObject)Source).GetValue(_dp), CheckIsBroken());
             }
             else if (_prop != null)
             {
@@ -130,7 +116,7 @@ namespace Windows.UI.Xaml.Data
                     }
                     UpdateValueAndIsBroken(propertyValue, CheckIsBroken());
 #else
-                    UpdateValueAndIsBroken(_prop.GetValue(source), CheckIsBroken());
+                    UpdateValueAndIsBroken(_prop.GetValue(this.Source), CheckIsBroken());
 #endif
                 }
                 catch
@@ -142,7 +128,7 @@ namespace Windows.UI.Xaml.Data
             {
                 try
                 {
-                    UpdateValueAndIsBroken(_field.GetValue(source), CheckIsBroken());
+                    UpdateValueAndIsBroken(_field.GetValue(Source), CheckIsBroken());
                 }
                 catch
                 {
@@ -151,7 +137,7 @@ namespace Windows.UI.Xaml.Data
             }
             else if (_bindsDirectlyToSource)
             {
-                UpdateValueAndIsBroken(source, CheckIsBroken());
+                UpdateValueAndIsBroken(Source, CheckIsBroken());
             }
             else
             {
@@ -176,12 +162,9 @@ namespace Windows.UI.Xaml.Data
             _dp = null;
             _prop = null;
             _field = null;
-            object source = GetSourceObj();
 
-            if (source == null)
-            {
+            if (Source == null)
                 return;
-            }
 
             if (_bindsDirectlyToSource)
                 return;
@@ -194,7 +177,7 @@ namespace Windows.UI.Xaml.Data
 
             if (newValue is DependencyObject sourceDO)
             {
-                Type type = _resolvedType ?? source.GetType();
+                Type type = _resolvedType ?? Source.GetType();
 
                 DependencyProperty dependencyProperty = INTERNAL_TypeToStringsToDependencyProperties.GetPropertyInTypeOrItsBaseTypes(type, _propertyName);
 
@@ -207,7 +190,7 @@ namespace Windows.UI.Xaml.Data
 
             if (_dp == null)
             {
-                Type sourceType = source.GetType();
+                Type sourceType = Source.GetType();
                 for (Type t = sourceType; t != null; t = t.BaseType)
                 {
                     _prop = t.GetProperty(
@@ -269,23 +252,7 @@ namespace Windows.UI.Xaml.Data
 
         private bool CheckIsBroken()
         {
-            return GetSourceObj() == null || (!_bindsDirectlyToSource && (_prop == null && _field == null && _dp == null));
-        }
-
-        protected void Unsubscribe()
-        {
-            // Unsubscribe
-            if (Value is INotifyPropertyChanged inpc)
-            {
-                inpc.PropertyChanged -= new PropertyChangedEventHandler(OnSourcePropertyChanged);
-            }
-
-            IPropertyChangedListener listener = _dpListener;
-            if (listener != null)
-            {
-                _dpListener = null;
-                listener.Detach();
-            }
+            return Source == null || (!_bindsDirectlyToSource && (_prop == null && _field == null && _dp == null));
         }
     }
 }

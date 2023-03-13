@@ -99,7 +99,7 @@ namespace Windows.UI.Xaml.Data
         {
             try
             {
-                _indexer.SetValue(GetSourceObj(), value, new object[1] { Index });
+                _indexer.SetValue(Source, value, new object[1] { Index });
                 return true;
             }
             catch
@@ -112,7 +112,7 @@ namespace Windows.UI.Xaml.Data
         {
             try
             {
-                result = _indexer.GetValue(GetSourceObj(), new object[1] { Index });
+                result = _indexer.GetValue(Source, new object[1] { Index });
                 return true;
             }
             catch

@@ -143,12 +143,12 @@ namespace Windows.UI.Xaml
         /// </summary>
         internal void RemoveVisualChild(UIElement child)
         {
-            if (child == null || child.INTERNAL_VisualParent == null)
+            if (child == null || child._parent == null)
             {
                 return;
             }
 
-            if (child.INTERNAL_VisualParent != this)
+            if (child._parent != this)
             {
                 throw new ArgumentException("Specified UIElement is not a child of this UIElement.");
             }
@@ -172,9 +172,9 @@ namespace Windows.UI.Xaml
         internal virtual void OnVisualParentChanged(DependencyObject oldParent)
         {
             // Synchronize ForceInherit properties
-            if (INTERNAL_VisualParent != null)
+            if (_parent != null)
             {
-                SynchronizeForceInheritProperties(this, INTERNAL_VisualParent);
+                SynchronizeForceInheritProperties(this, _parent);
             }
             else
             {
