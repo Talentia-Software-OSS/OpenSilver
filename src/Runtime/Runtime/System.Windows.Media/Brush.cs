@@ -13,6 +13,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using CSHTML5.Internal;
 
 #if MIGRATION
@@ -49,14 +50,15 @@ namespace Windows.UI.Xaml.Media
         public static readonly DependencyProperty OpacityProperty =
             DependencyProperty.Register("Opacity", typeof(double), typeof(Brush), new PropertyMetadata(1d));
 
-        private HashSet2<KeyValuePair<DependencyObject, DependencyProperty>> _propertiesWhereUsed;
-        public HashSet2<KeyValuePair<DependencyObject, DependencyProperty>> PropertiesWhereUsed
+        private WeakStorageForProperties _propertiesWhereUsed;
+
+        public WeakStorageForProperties PropertiesWhereUsed
         {
             get
             {
                 if(_propertiesWhereUsed == null)
                 {
-                    _propertiesWhereUsed = new HashSet2<KeyValuePair<DependencyObject, DependencyProperty>>();
+                    _propertiesWhereUsed = new WeakStorageForProperties();
                 }
                 return _propertiesWhereUsed;
             }
