@@ -503,16 +503,14 @@ img.src = {sHtml5Path};");
 
         public T Get(int index) => _items.ContainsKey(index) ? _items[index] : default;
 
-        public void ExecuteOnFilter(Func<T, bool> condition, Action<T> action)
+        public List<T> Where(Func<T, bool> condition)
         {
+            List<T> toAction = new List<T>();
             lock (_lock)
             {
-                var toDelete = _items.Where(kvp => condition(kvp.Value)).ToList();
-                foreach(var kvp in toDelete)
-                {
-                    action(kvp.Value);
-                }
+                toAction.AddRange(_items.Where(kvp => condition(kvp.Value)).Select(kvp => kvp.Value));
             }
+            return toAction;
         }
     }
 }

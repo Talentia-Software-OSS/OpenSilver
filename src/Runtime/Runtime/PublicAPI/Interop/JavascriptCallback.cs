@@ -15,6 +15,7 @@
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Windows;
 
 namespace CSHTML5.Internal
@@ -22,6 +23,7 @@ namespace CSHTML5.Internal
     internal class JavascriptCallback : IDisposable
     {
         private static readonly SynchronizedStore<JavascriptCallback> _store = new SynchronizedStore<JavascriptCallback>();
+        private static readonly Timer _timer = new Timer(CleanUpStore, null, 1000, 1000);
 
         private MethodInfo _delegateInfo;
         private WeakReference _delegateTarget;
@@ -49,6 +51,19 @@ namespace CSHTML5.Internal
             return _store.Get(index);
         }
 
+        private static void CleanUpStore(object state)
+        {
+            _store.Where(jc => 
+                !jc._isStaticTarget && 
+                !jc._isDisposed &&
+                jc._delegateTarget != null &&
+                !jc._delegateTarget.IsAlive).ForEach(jc => 
+                {
+                    //Console.WriteLine("Cleaning up {0}", jc.Id);
+                    _store.Clean(jc.Id);
+                });
+        }
+
         private JavascriptCallback(Delegate callback)
             :this(callback, true)
         { 
@@ -63,6 +78,7 @@ namespace CSHTML5.Internal
             // Create hard links for Dynamic classes
             if (createWeak && callback.Target != null && IsGeneratedClass(callback.Target.GetType()))
             {
+                //Console.WriteLine(callback.Target.GetType().FullName);
                 createWeak = false;
             }
 
