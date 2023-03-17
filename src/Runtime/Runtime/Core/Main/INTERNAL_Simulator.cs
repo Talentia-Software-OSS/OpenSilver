@@ -91,7 +91,8 @@ namespace DotNetForHtml5.Core
                     {
                         jsRuntime = wasmHandler;
                         INTERNAL_SimulatorExecuteJavaScript.JavaScriptRuntime =
-                            new PendingJavascript(Cshtml5Initializer.PendingJsBufferSize, wasmHandler);
+                            new PendingJavascript(wasmHandler);
+                            // new PendingJavascriptHeap(Cshtml5Initializer.PendingJsBufferSize, wasmHandler);
                     }
                     else
                     {

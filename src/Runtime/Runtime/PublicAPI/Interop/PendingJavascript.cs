@@ -29,6 +29,65 @@ namespace CSHTML5.Internal
 
     internal sealed class PendingJavascript : IPendingJavascript
     {
+        private readonly List<string> _pending = new List<string>();
+        private readonly IWebAssemblyExecutionHandler _webAssemblyExecutionHandler;
+
+        public PendingJavascript(IWebAssemblyExecutionHandler webAssemblyExecutionHandler)
+        {
+            _webAssemblyExecutionHandler = webAssemblyExecutionHandler ?? throw new ArgumentNullException(nameof(webAssemblyExecutionHandler));
+        }
+
+        public void AddJavaScript(string javascript)
+        {
+            if (javascript == null) return;
+
+            lock (_pending)
+            {
+                _pending.Add(javascript);
+            }
+        }
+
+        public object ExecuteJavaScript(string javascript, bool flush)
+        {
+
+            if (flush)
+            {
+                string aggregatedPendingJavaScriptCode = ReadAndClearAggregatedPendingJavaScriptCode();
+
+                if (!string.IsNullOrWhiteSpace(aggregatedPendingJavaScriptCode))
+                {
+                    javascript = string.Join(Environment.NewLine, new List<string>
+                    {
+                        "// [START OF PENDING JAVASCRIPT]",
+                        aggregatedPendingJavaScriptCode,
+                        "// [END OF PENDING JAVASCRIPT]" + Environment.NewLine,
+                        javascript
+                    });
+                }
+            }
+
+            return _webAssemblyExecutionHandler.ExecuteJavaScriptWithResult(javascript);
+        }
+
+
+
+        internal string ReadAndClearAggregatedPendingJavaScriptCode()
+        {
+            lock (_pending)
+            {
+                if (_pending.Count == 0)
+                    return null;
+
+                _pending.Add(string.Empty);
+                string aggregatedPendingJavaScriptCode = string.Join(";\n", _pending);
+                _pending.Clear();
+                return aggregatedPendingJavaScriptCode;
+            }
+        }
+    }
+
+    internal sealed class PendingJavascriptHeap : IPendingJavascript
+    {
         private const string CallJSMethodName = "callJSUnmarshalledHeap";
 
         private static readonly Encoding DefaultEncoding = Encoding.UTF8;
@@ -38,7 +97,7 @@ namespace CSHTML5.Internal
         private byte[] _buffer;
         private int _currentLength;
 
-        public PendingJavascript(int bufferSize, IWebAssemblyExecutionHandler webAssemblyExecutionHandler)
+        public PendingJavascriptHeap(int bufferSize, IWebAssemblyExecutionHandler webAssemblyExecutionHandler)
         {
             if (bufferSize <= 0)
             {
