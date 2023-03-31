@@ -191,7 +191,9 @@ namespace CSHTML5
             }
 
             // Change the JS code to call ShowErrorMessage in case of error:
-            var errorCallBackId = _javascriptCallsStore.Add(unmodifiedJavascript);
+            var errorCallBackId = Application.EnableJavascriptErrorCallback ? 
+                _javascriptCallsStore.Add(unmodifiedJavascript) :
+                -1;
 
             // Surround the javascript code with some code that will store the
             // result into the "document.jsObjRef" for later
@@ -204,7 +206,10 @@ namespace CSHTML5
             if (!runAsynchronously)
             {
                 value = CastFromJsValue(INTERNAL_HtmlDomManager.ExecuteJavaScriptWithResult(javascript, noImpactOnPendingJSCode: noImpactOnPendingJSCode));
-                _javascriptCallsStore.Clean(errorCallBackId);
+                if (Application.EnableJavascriptErrorCallback)
+                {
+                    _javascriptCallsStore.Clean(errorCallBackId);
+                }
             }
             else
             {

@@ -61,6 +61,8 @@ namespace Windows.UI.Xaml
         /// </summary>
         public static Application Current { get; private set; }
 
+        public static bool EnableJavascriptErrorCallback { get; set; } = false;
+
         internal INTERNAL_XamlResourcesHandler XamlResourcesHandler { get; } = new INTERNAL_XamlResourcesHandler();
 
         internal ITextMeasurementService TextMeasurementService { get; private set; }
