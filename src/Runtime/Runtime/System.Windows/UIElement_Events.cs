@@ -844,7 +844,7 @@ namespace Windows.UI.Xaml
                 string sElement = INTERNAL_InteropImplementation.GetVariableStringForJS(this.INTERNAL_OuterDomElement);
                 setIsPointerInsideToTrueCallback = JavascriptCallback.CreateWeak((Action)SetIsPointerInsideToTrue);
                 string sAction = INTERNAL_InteropImplementation.GetVariableStringForJS(setIsPointerInsideToTrueCallback);
-                CSHTML5.Interop.ExecuteJavaScript($@"{sElement}.addEventListener(""mouseenter"", {sAction}, false);");
+                CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"{sElement}.addEventListener(""mouseenter"", {sAction}, false);");
 
 
                 //CSHTML5.Interop.ExecuteJavaScript("window.subscribeToPointerEnteredAndLeft($0);", this.INTERNAL_OuterDomElement); //todo: decide whether test is we already subscribed in c# or in the window.subscribeToPointerMovedEventOnWindow method.
@@ -857,7 +857,7 @@ namespace Windows.UI.Xaml
             {
                 string sElement = INTERNAL_InteropImplementation.GetVariableStringForJS(this.INTERNAL_OuterDomElement);
                 string sAction = INTERNAL_InteropImplementation.GetVariableStringForJS(setIsPointerInsideToTrueCallback);
-                CSHTML5.Interop.ExecuteJavaScript($@"{sElement}.removeEventListener(""mouseenter"", {sAction});");
+                CSHTML5.Interop.ExecuteJavaScriptFastAsync($@"{sElement}.removeEventListener(""mouseenter"", {sAction});");
 
                 setIsPointerInsideToTrueCallback.Dispose();
 
