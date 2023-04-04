@@ -26,6 +26,10 @@ namespace DotNetForHtml5
         public static PendingJavascriptImplementationType PendingJavascriptImplementationType { get; set; }
             = PendingJavascriptImplementationType.PendingJavascriptJoin; // Leave the tested variant as a default
 
+
+        public static PendingJavascriptImplementationType PendingJavascriptSimulatorImplementationType { get; set; }
+            = PendingJavascriptImplementationType.PendingJavascriptJoin; // Leave the tested variant as a default
+
         public static void Initialize(IWebAssemblyExecutionHandler executionHandler)
         {
             Initialize((IJavaScriptExecutionHandler)executionHandler);

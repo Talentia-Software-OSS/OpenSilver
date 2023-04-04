@@ -1343,6 +1343,8 @@ document.ondblclick = null;
         public GeneralTransform TransformToVisual(UIElement visual)
         {
             var outerDivOfThisControl = this.INTERNAL_OuterDomElement;
+            if (outerDivOfThisControl == null)
+                return null;
 
             // If no "visual" was specified, we use the Window root instead.
             // Note: This is useful for example when calculating the position of popups, which are defined in absolute coordinates, at the same level as the Window root.

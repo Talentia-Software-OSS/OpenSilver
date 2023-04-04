@@ -58,36 +58,26 @@ namespace CSHTML5.Internal
 
         public object ExecuteJavaScript(string javascript, bool flush)
         {
-
             if (flush)
             {
-                string aggregatedPendingJavaScriptCode = ReadAndClearAggregatedPendingJavaScriptCode();
-
-                if (!string.IsNullOrWhiteSpace(aggregatedPendingJavaScriptCode))
-                {
-                    javascript = string.Join(Environment.NewLine, new List<string>
-                    {
-                        "// [START OF PENDING JAVASCRIPT]",
-                        aggregatedPendingJavaScriptCode,
-                        "// [END OF PENDING JAVASCRIPT]" + Environment.NewLine,
-                        javascript
-                    });
-                }
+                javascript = ReadAndClearAggregatedPendingJavaScriptCode(javascript);
             }
-
-            return _webAssemblyExecutionHandler.ExecuteJavaScriptWithResult(javascript);
+            if (!string.IsNullOrEmpty(javascript))
+            {
+                return _webAssemblyExecutionHandler.ExecuteJavaScriptWithResult(javascript);
+            }
+            return null;
         }
 
 
-
-        internal string ReadAndClearAggregatedPendingJavaScriptCode()
+        internal string ReadAndClearAggregatedPendingJavaScriptCode(string lastJavascript)
         {
             lock (_pending)
             {
-                if (_pending.Count == 0)
+                if (_pending.Count == 0 && string.IsNullOrEmpty(lastJavascript))
                     return null;
 
-                _pending.Add(string.Empty);
+                _pending.Add(lastJavascript);
                 string aggregatedPendingJavaScriptCode = string.Join(";\n", _pending);
                 _pending.Clear();
                 return aggregatedPendingJavaScriptCode;
@@ -195,7 +185,7 @@ namespace CSHTML5.Internal
             _bufferIndex = 0;
         }
 
-        private void AppendJavaScript(string javascript)
+        public void AddJavaScript(string javascript)
         {
             if (string.IsNullOrEmpty(javascript))
             {
@@ -224,16 +214,6 @@ namespace CSHTML5.Internal
             }
         }
 
-        public void AddJavaScript(string javascript)
-        {
-            AppendJavaScript(javascript);
-
-            if (_bufferIndex >= _buffer.Length)
-            {
-                ExecuteQueuedJavaScript();
-            }
-        }
-
         public object ExecuteJavaScript(string javascript, bool flush)
         {
             lock (_lock)
@@ -242,7 +222,7 @@ namespace CSHTML5.Internal
                 {
                     if (!string.IsNullOrEmpty(javascript))
                     {
-                        AppendJavaScript(javascript);
+                        AddJavaScript(javascript);
                         return ExecuteQueuedJavaScriptWithResult();
                     }
 
@@ -285,7 +265,8 @@ namespace CSHTML5.Internal
 
     internal class PendingJavascriptSpan : IPendingJavascript
     {
-        private char[] _buffer;
+        private readonly object _lock = new object();
+        private readonly char[] _buffer;
         private int _length;
         private readonly int _maxSize;
         private readonly IJavaScriptExecutionHandler _executionHandler;
@@ -313,34 +294,43 @@ namespace CSHTML5.Internal
                 return;
             }
 
-            // Append the new JavaScript to the buffer
-            var requiredCapacity = _length + javascript.Length + 2; // Add 2 for the semicolon and newline characters
-            if (requiredCapacity > _maxSize)
+            lock (_lock)
             {
-                // The JavaScript is too large for the buffer, so execute the current buffer and the new JavaScript separately
-                ExecuteQueuedJavaScript();
-            }
+                // Append the new JavaScript to the buffer
+                var requiredCapacity = _length + javascript.Length + 2; // Add 2 for the semicolon and newline characters
+                if (requiredCapacity > _maxSize)
+                {
+                    // The JavaScript is too large for the buffer, so execute the current buffer and the new JavaScript separately
+                    ExecuteQueuedJavaScript();
+                }
 
-            // The JavaScript fits in the buffer, so append it to the buffer
-            var jsSpan = javascript.AsSpan();
-            jsSpan.CopyTo(_buffer.AsSpan(_length));
-            _length += jsSpan.Length;
-            _buffer[_length++] = ';';
-            _buffer[_length++] = '\n';
+                // The JavaScript fits in the buffer, so append it to the buffer
+                var jsSpan = javascript.AsSpan();
+                jsSpan.CopyTo(_buffer.AsSpan(_length));
+                _length += jsSpan.Length;
+                _buffer[_length++] = ';';
+                _buffer[_length++] = '\n';
+            }
         }
 
         public object ExecuteJavaScript(string javascript, bool flush)
         {
-            if (flush)
+            lock (_lock)
             {
-                lock (_buffer)
+                if (flush)
                 {
-                    AddJavaScript(javascript);
-                    return ExecuteQueuedJavaScriptWithResult();
-                }
-            }
+                    if (!string.IsNullOrEmpty(javascript))
+                    {
+                        AddJavaScript(javascript);
+                        return ExecuteQueuedJavaScriptWithResult();
+                    }
 
-            return _executionHandler.ExecuteJavaScriptWithResult(javascript);
+                    ExecuteQueuedJavaScript();
+                    return null;
+                }
+
+                return _executionHandler.ExecuteJavaScriptWithResult(javascript);
+            }
         }
 
         private void ExecuteQueuedJavaScript()
@@ -443,90 +433,6 @@ namespace CSHTML5.Internal
                         _buffer,
                         curLength);
                 }
-            }
-        }
-    }
-
-    internal sealed class PendingJavascriptSimulator : IPendingJavascript
-    {
-        private readonly List<string> _pending = new List<string>();
-        private readonly IJavaScriptExecutionHandler _jsExecutionHandler;
-
-        public PendingJavascriptSimulator(IJavaScriptExecutionHandler jsExecutionHandler)
-        {
-            _jsExecutionHandler = jsExecutionHandler ?? throw new ArgumentNullException(nameof(jsExecutionHandler));
-        }
-
-        public void AddJavaScript(string javascript)
-        {
-            lock (_pending)
-            {
-                _pending.Add(javascript);
-            }
-        }
-
-        public object ExecuteJavaScript(string javascript, bool flush)
-        {
-            if (flush)
-            {
-                string aggregatedPendingJavaScriptCode = ReadAndClearAggregatedPendingJavaScriptCode();
-
-                if (!string.IsNullOrWhiteSpace(aggregatedPendingJavaScriptCode))
-                {
-                    javascript = string.Join(Environment.NewLine, new List<string>
-                    {
-                        "// [START OF PENDING JAVASCRIPT]",
-                        aggregatedPendingJavaScriptCode,
-                        "// [END OF PENDING JAVASCRIPT]" + Environment.NewLine,
-                        javascript
-                    });
-                }
-            }
-
-            return PerformActualInteropCall(javascript);
-        }
-
-        private object PerformActualInteropCall(string javaScriptToExecute)
-        {
-            if (INTERNAL_SimulatorExecuteJavaScript.EnableInteropLogging)
-            {
-                javaScriptToExecute = "//---- START INTEROP ----"
-                    + Environment.NewLine
-                    + javaScriptToExecute
-                    + Environment.NewLine
-                    + "//---- END INTEROP ----";
-            }
-
-            try
-            {
-                if (INTERNAL_SimulatorExecuteJavaScript.EnableInteropLogging)
-                {
-                    Debug.WriteLine(javaScriptToExecute);
-                }
-                if (string.IsNullOrEmpty(javaScriptToExecute))
-                {
-                    return null;
-                }
-
-                return _jsExecutionHandler.ExecuteJavaScriptWithResult(javaScriptToExecute);
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw new InvalidOperationException("Unable to execute the following JavaScript code: " + Environment.NewLine + javaScriptToExecute, ex);
-            }
-        }
-
-        internal string ReadAndClearAggregatedPendingJavaScriptCode()
-        {
-            lock (_pending)
-            {
-                if (_pending.Count == 0)
-                    return null;
-
-                _pending.Add(string.Empty);
-                string aggregatedPendingJavaScriptCode = string.Join(";\n", _pending);
-                _pending.Clear();
-                return aggregatedPendingJavaScriptCode;
             }
         }
     }
