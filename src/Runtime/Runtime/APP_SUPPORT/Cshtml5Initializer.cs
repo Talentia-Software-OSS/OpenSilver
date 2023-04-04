@@ -23,6 +23,9 @@ namespace DotNetForHtml5
     {
         public static int PendingJsBufferSize { get; set; } = 1024 * 1024 * 2; // 2 MB
 
+        public static PendingJavascriptImplementationType PendingJavascriptImplementationType { get; set; }
+            = PendingJavascriptImplementationType.PendingJavascriptJoin; // Leave the tested variant as a default
+
         public static void Initialize(IWebAssemblyExecutionHandler executionHandler)
         {
             Initialize((IJavaScriptExecutionHandler)executionHandler);

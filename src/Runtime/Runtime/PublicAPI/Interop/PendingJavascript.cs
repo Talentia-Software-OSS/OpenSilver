@@ -20,6 +20,15 @@ using System.Text;
 
 namespace CSHTML5.Internal
 {
+    public enum PendingJavascriptImplementationType
+    {
+        PendingJavascriptJoin,
+        PendingJavascriptStringBuilder,
+        PendingJavascriptBuffer,
+        PendingJavascriptSpan,
+        PendingJavascriptHeap
+    }
+
     internal interface IPendingJavascript
     {
         void AddJavaScript(string javascript);
@@ -27,12 +36,12 @@ namespace CSHTML5.Internal
         object ExecuteJavaScript(string javascript, bool flush);
     }
 
-    internal sealed class PendingJavascript : IPendingJavascript
+    internal sealed class PendingJavascriptJoin : IPendingJavascript
     {
         private readonly List<string> _pending = new List<string>();
         private readonly IWebAssemblyExecutionHandler _webAssemblyExecutionHandler;
 
-        public PendingJavascript(IWebAssemblyExecutionHandler webAssemblyExecutionHandler)
+        public PendingJavascriptJoin(IWebAssemblyExecutionHandler webAssemblyExecutionHandler)
         {
             _webAssemblyExecutionHandler = webAssemblyExecutionHandler ?? throw new ArgumentNullException(nameof(webAssemblyExecutionHandler));
         }
@@ -86,6 +95,285 @@ namespace CSHTML5.Internal
         }
     }
 
+    internal sealed class PendingJavascriptStringBuilder : IPendingJavascript
+    {
+        private readonly StringBuilder _javascriptBuilder;
+        private readonly int _maxBufferSize;
+        private readonly IJavaScriptExecutionHandler _executionHandler;
+
+        public PendingJavascriptStringBuilder(int maxBufferSize, IJavaScriptExecutionHandler executionHandler)
+        {
+            _maxBufferSize = maxBufferSize;
+            _executionHandler = executionHandler;
+            _javascriptBuilder = new StringBuilder(maxBufferSize, maxBufferSize);
+        }
+
+        public void AddJavaScript(string javascript)
+        {
+            if (string.IsNullOrEmpty(javascript))
+            {
+                return;
+            }
+
+            lock (_javascriptBuilder)
+            {
+                if (_javascriptBuilder.Capacity - _javascriptBuilder.Length < javascript.Length + 2)
+                {
+                    ExecuteQueuedJavaScript();
+                }
+
+                _javascriptBuilder.Append(javascript);
+                _javascriptBuilder.Append(";\n");
+            }
+        }
+
+        public object ExecuteJavaScript(string javascript, bool flush)
+        {
+            if (flush)
+            {
+                if (!string.IsNullOrEmpty(javascript))
+                {
+                    AddJavaScript(javascript);
+                    return ExecuteQueuedJavaScriptWithResult();
+                }
+
+                ExecuteQueuedJavaScript();
+                return null;
+            }
+
+            return _executionHandler.ExecuteJavaScriptWithResult(javascript);
+        }
+
+        private void ExecuteQueuedJavaScript()
+        {
+            string javascript = null;
+
+            lock (_javascriptBuilder)
+            {
+                if (_javascriptBuilder.Length == 0)
+                {
+                    return;
+                }
+
+                javascript = _javascriptBuilder.ToString();
+                _javascriptBuilder.Clear();
+            }
+
+            _executionHandler.ExecuteJavaScript(javascript);
+        }
+
+        private object ExecuteQueuedJavaScriptWithResult()
+        {
+            string javascript = null;
+
+            lock (_javascriptBuilder)
+            {
+                if (_javascriptBuilder.Length == 0)
+                {
+                    return null;
+                }
+
+                javascript = _javascriptBuilder.ToString();
+                _javascriptBuilder.Clear();
+            }
+
+            return _executionHandler.ExecuteJavaScriptWithResult(javascript);
+        }
+    }
+
+    internal class PendingJavascriptBuffer : IPendingJavascript
+    {
+        private readonly object _lock = new object();
+        private readonly char[] _buffer;
+        private int _bufferIndex;
+        private readonly IJavaScriptExecutionHandler _executionHandler;
+
+        public PendingJavascriptBuffer(int bufferSize, IJavaScriptExecutionHandler executionHandler)
+        {
+            _executionHandler = executionHandler;
+            _buffer = new char[bufferSize];
+            _bufferIndex = 0;
+        }
+
+        private void AppendJavaScript(string javascript)
+        {
+            if (string.IsNullOrEmpty(javascript))
+            {
+                return;
+            }
+
+            // Check if the JavaScript is too large for the buffer
+            if (javascript.Length + 2 > _buffer.Length)
+            {
+                // The JavaScript is too large for the buffer, so execute it separately
+                _executionHandler.ExecuteJavaScript(javascript);
+                return;
+            }
+
+            lock (_lock)
+            {
+                if (_buffer.Length - _bufferIndex < javascript.Length + 2)
+                {
+                    ExecuteQueuedJavaScript();
+                }
+
+                javascript.CopyTo(0, _buffer, _bufferIndex, javascript.Length);
+                _bufferIndex += javascript.Length;
+                _buffer[_bufferIndex++] = ';';
+                _buffer[_bufferIndex++] = '\n';
+            }
+        }
+
+        public void AddJavaScript(string javascript)
+        {
+            AppendJavaScript(javascript);
+
+            if (_bufferIndex >= _buffer.Length)
+            {
+                ExecuteQueuedJavaScript();
+            }
+        }
+
+        public object ExecuteJavaScript(string javascript, bool flush)
+        {
+            lock (_lock)
+            {
+                if (flush)
+                {
+                    if (!string.IsNullOrEmpty(javascript))
+                    {
+                        AppendJavaScript(javascript);
+                        return ExecuteQueuedJavaScriptWithResult();
+                    }
+
+                    ExecuteQueuedJavaScript();
+                    return null;
+                }
+
+                return _executionHandler.ExecuteJavaScriptWithResult(javascript);
+            }
+        }
+
+        private void ExecuteQueuedJavaScript()
+        {
+            if (_bufferIndex == 0)
+            {
+                return;
+            }
+
+            var javascript = new string(_buffer, 0, _bufferIndex);
+            _executionHandler.ExecuteJavaScript(javascript);
+
+            _bufferIndex = 0;
+        }
+
+        private object ExecuteQueuedJavaScriptWithResult()
+        {
+            if (_bufferIndex == 0)
+            {
+                return null;
+            }
+
+            var javascript = new string(_buffer, 0, _bufferIndex);
+            var result = _executionHandler.ExecuteJavaScriptWithResult(javascript);
+
+            _bufferIndex = 0;
+
+            return result;
+        }
+    }
+
+    internal class PendingJavascriptSpan : IPendingJavascript
+    {
+        private char[] _buffer;
+        private int _length;
+        private readonly int _maxSize;
+        private readonly IJavaScriptExecutionHandler _executionHandler;
+
+        public PendingJavascriptSpan(int maxSize, IJavaScriptExecutionHandler executionHandler)
+        {
+            _maxSize = maxSize;
+            _buffer = new char[maxSize];
+            _length = 0;
+            _executionHandler = executionHandler;
+        }
+
+        public void AddJavaScript(string javascript)
+        {
+            if (string.IsNullOrEmpty(javascript))
+            {
+                return;
+            }
+
+            // Check if the JavaScript is too large for the buffer
+            if (javascript.Length + 2 > _maxSize)
+            {
+                // The JavaScript is too large for the buffer, so execute it separately
+                _executionHandler.ExecuteJavaScript(javascript);
+                return;
+            }
+
+            // Append the new JavaScript to the buffer
+            var requiredCapacity = _length + javascript.Length + 2; // Add 2 for the semicolon and newline characters
+            if (requiredCapacity > _maxSize)
+            {
+                // The JavaScript is too large for the buffer, so execute the current buffer and the new JavaScript separately
+                ExecuteQueuedJavaScript();
+            }
+
+            // The JavaScript fits in the buffer, so append it to the buffer
+            var jsSpan = javascript.AsSpan();
+            jsSpan.CopyTo(_buffer.AsSpan(_length));
+            _length += jsSpan.Length;
+            _buffer[_length++] = ';';
+            _buffer[_length++] = '\n';
+        }
+
+        public object ExecuteJavaScript(string javascript, bool flush)
+        {
+            if (flush)
+            {
+                lock (_buffer)
+                {
+                    AddJavaScript(javascript);
+                    return ExecuteQueuedJavaScriptWithResult();
+                }
+            }
+
+            return _executionHandler.ExecuteJavaScriptWithResult(javascript);
+        }
+
+        private void ExecuteQueuedJavaScript()
+        {
+            if (_length == 0)
+            {
+                return;
+            }
+
+            var javascript = new ReadOnlySpan<char>(_buffer, 0, _length);
+            _executionHandler.ExecuteJavaScript(javascript.ToString());
+
+            // Reset the buffer length to zero
+            _length = 0;
+        }
+
+        private object ExecuteQueuedJavaScriptWithResult()
+        {
+            if (_length == 0)
+            {
+                return null;
+            }
+
+            var javascript = new ReadOnlySpan<char>(_buffer, 0, _length);
+            var result = _executionHandler.ExecuteJavaScriptWithResult(javascript.ToString());
+
+            // Reset the buffer length to zero
+            _length = 0;
+
+            return result;
+        }
+    }
+
     internal sealed class PendingJavascriptHeap : IPendingJavascript
     {
         private const string CallJSMethodName = "callJSUnmarshalledHeap";
@@ -115,9 +403,10 @@ namespace CSHTML5.Internal
             lock (_syncObj)
             {
                 var maxByteCount = DefaultEncoding.GetMaxByteCount(javascript.Length);
-                while (maxByteCount + _currentLength > _buffer.Length)
+                if (maxByteCount + _currentLength + Delimiter.Length > _buffer.Length)
                 {
-                    IncreaseBuffer();
+                    // Flush the buffer and start over
+                    ExecuteJavaScript(null, true);
                 }
 
                 _currentLength += DefaultEncoding.GetBytes(javascript, 0, javascript.Length, _buffer, _currentLength);
@@ -150,16 +439,11 @@ namespace CSHTML5.Internal
                 fixed (byte* pointerToFirst = _buffer)
                 {
                     return _webAssemblyExecutionHandler.InvokeUnmarshalled<byte[], int, object>(
-                    CallJSMethodName, _buffer, curLength);
+                        CallJSMethodName,
+                        _buffer,
+                        curLength);
                 }
             }
-        }
-
-        private void IncreaseBuffer()
-        {
-            var currentBuffer = _buffer;
-            _buffer = new byte[currentBuffer.Length * 2];
-            currentBuffer.CopyTo(_buffer, 0);
         }
     }
 
