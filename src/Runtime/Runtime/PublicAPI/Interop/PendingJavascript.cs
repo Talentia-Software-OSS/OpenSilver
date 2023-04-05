@@ -262,9 +262,8 @@ namespace CSHTML5.Internal
             }
 
             var javascript = new string(_buffer, 0, _bufferIndex);
-            _executionHandler.ExecuteJavaScript(javascript);
-
             _bufferIndex = 0;
+            _executionHandler.ExecuteJavaScript(javascript);
         }
 
         private object ExecuteQueuedJavaScriptWithResult()
@@ -275,10 +274,8 @@ namespace CSHTML5.Internal
             }
 
             var javascript = new string(_buffer, 0, _bufferIndex);
-            var result = _executionHandler.ExecuteJavaScriptWithResult(javascript);
-
             _bufferIndex = 0;
-
+            var result = _executionHandler.ExecuteJavaScriptWithResult(javascript);
             return result;
         }
     }
@@ -351,10 +348,8 @@ namespace CSHTML5.Internal
             }
 
             var javascript = new ReadOnlySpan<char>(_buffer, 0, _length);
-            _executionHandler.ExecuteJavaScript(javascript.ToString());
-
-            // Reset the buffer length to zero
             _length = 0;
+            _executionHandler.ExecuteJavaScript(javascript.ToString());
         }
 
         private object ExecuteQueuedJavaScriptWithResult()
@@ -365,11 +360,8 @@ namespace CSHTML5.Internal
             }
 
             var javascript = new ReadOnlySpan<char>(_buffer, 0, _length);
-            var result = _executionHandler.ExecuteJavaScriptWithResult(javascript.ToString());
-
-            // Reset the buffer length to zero
             _length = 0;
-
+            var result = _executionHandler.ExecuteJavaScriptWithResult(javascript.ToString());
             return result;
         }
     }

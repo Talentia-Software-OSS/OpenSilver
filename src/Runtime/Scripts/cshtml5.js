@@ -352,9 +352,7 @@ document.callScriptSafe = function (referenceId, javaScriptToExecute, errorCallB
         document.jsObjRef[referenceId] = eval(javaScriptToExecute); 
         return document.jsObjRef[referenceId];
     } catch (error) {
-        if (errorCallBackId !== '-1') {
-            document.errorCallback(error, errorCallBackId); 
-        }
+        document.errorCallback(error, errorCallBackId); 
     }
 }
 
