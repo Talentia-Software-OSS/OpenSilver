@@ -127,13 +127,7 @@ namespace Windows.UI.Xaml
         {
             if (table.TryGetValue(item, out List<DependencyProperty> dependencyProperties))
             {
-                try
-                {
-                    dependencyProperties.Remove(dependencyProperty);
-                }
-                catch
-                {
-                }
+                dependencyProperties.Remove(dependencyProperty);
             }
             else
             {

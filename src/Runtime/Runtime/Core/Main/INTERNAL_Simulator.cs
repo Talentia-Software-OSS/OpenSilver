@@ -14,7 +14,6 @@
 
 
 using CSHTML5.Internal;
-using Microsoft.JSInterop;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -79,25 +78,8 @@ namespace DotNetForHtml5.Core
         /// </summary>
         public static Func<bool> WebControlDispatcherCheckAccess { get; internal set; }
 
-        internal static Func<PendingJavascriptImplementationType, IWebAssemblyExecutionHandler, IPendingJavascript> GetJsRuntimeImplementation =>
-            (pendingJavascriptImplementationType, jsHandler) =>
-                        {
-                            return pendingJavascriptImplementationType switch
-                            {
-                                PendingJavascriptImplementationType.PendingJavascriptStringBuilder 
-                                    => new PendingJavascriptStringBuilder(Cshtml5Initializer.PendingJsBufferSize, jsHandler),
-                                PendingJavascriptImplementationType.PendingJavascriptBuffer 
-                                    => new PendingJavascriptBuffer(Cshtml5Initializer.PendingJsBufferSize, jsHandler),
-                                PendingJavascriptImplementationType.PendingJavascriptHeap 
-                                    => new PendingJavascriptHeap(Cshtml5Initializer.PendingJsBufferSize, jsHandler),
-                                PendingJavascriptImplementationType.PendingJavascriptSpan => 
-                                    new PendingJavascriptSpan(Cshtml5Initializer.PendingJsBufferSize, jsHandler),
-                                _ => new PendingJavascriptJoin(jsHandler),
-                            };
-};
-
 #if CSHTML5NETSTANDARD
-public static IJavaScriptExecutionHandler JavaScriptExecutionHandler
+        public static IJavaScriptExecutionHandler JavaScriptExecutionHandler
         {
             get => WebAssemblyExecutionHandler;
             set
@@ -108,16 +90,28 @@ public static IJavaScriptExecutionHandler JavaScriptExecutionHandler
                     if (value is IWebAssemblyExecutionHandler wasmHandler)
                     {
                         jsRuntime = wasmHandler;
-                        INTERNAL_SimulatorExecuteJavaScript.JavaScriptRuntime = GetJsRuntimeImplementation(
-                            Cshtml5Initializer.PendingJavascriptImplementationType,
-                            jsRuntime);
+                        Func<IPendingJavascript> GetJsRuntimeImplementation = () =>
+                        {
+                            return Cshtml5Initializer.PendingJavascriptImplementationType switch
+                            {
+                                PendingJavascriptImplementationType.PendingJavascriptStringBuilder 
+                                    => new PendingJavascriptStringBuilder(Cshtml5Initializer.PendingJsBufferSize, wasmHandler),
+                                PendingJavascriptImplementationType.PendingJavascriptBuffer 
+                                    => new PendingJavascriptBuffer(Cshtml5Initializer.PendingJsBufferSize, wasmHandler),
+                                PendingJavascriptImplementationType.PendingJavascriptHeap 
+                                    => new PendingJavascriptHeap(Cshtml5Initializer.PendingJsBufferSize, wasmHandler),
+                                PendingJavascriptImplementationType.PendingJavascriptSpan => 
+                                    new PendingJavascriptSpan(Cshtml5Initializer.PendingJsBufferSize, wasmHandler),
+                                _ => new PendingJavascriptJoin(wasmHandler),
+                            };
+                        };
+
+                        INTERNAL_SimulatorExecuteJavaScript.JavaScriptRuntime = GetJsRuntimeImplementation();
                     }
                     else
                     {
                         jsRuntime = new JSRuntimeWrapper(value);
-                        INTERNAL_SimulatorExecuteJavaScript.JavaScriptRuntime = GetJsRuntimeImplementation(
-                            Cshtml5Initializer.PendingJavascriptSimulatorImplementationType,
-                            jsRuntime);
+                        INTERNAL_SimulatorExecuteJavaScript.JavaScriptRuntime = new PendingJavascriptSimulator(value);
                     }
                 }
 
@@ -143,9 +137,8 @@ public static IJavaScriptExecutionHandler JavaScriptExecutionHandler
                 if (dynamicJavaScriptExecutionHandler != null)
                 {
                     WebAssemblyExecutionHandler = new SimulatorDynamicJSRuntime(value);
-                    INTERNAL_SimulatorExecuteJavaScript.JavaScriptRuntime = GetJsRuntimeImplementation(
-                            Cshtml5Initializer.PendingJavascriptSimulatorImplementationType,
-                            WebAssemblyExecutionHandler);                }
+                    INTERNAL_SimulatorExecuteJavaScript.JavaScriptRuntime = new PendingJavascriptSimulator(WebAssemblyExecutionHandler);
+                }
                 else
                 {
                     WebAssemblyExecutionHandler = null;
