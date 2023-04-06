@@ -208,6 +208,10 @@ namespace CSHTML5.Internal
                 ((FrameworkElement)element).ClearMeasureAndArrangeValidation();
 
                 ((FrameworkElement)element).INTERNAL_RaiseUnloadedEvent();
+
+                INTERNAL_HtmlDomManager.RemoveFromGlobalStore(element.INTERNAL_OuterDomElement as INTERNAL_HtmlDomElementReference);
+                INTERNAL_HtmlDomManager.RemoveFromGlobalStore(element.INTERNAL_InnerDomElement as INTERNAL_HtmlDomElementReference);
+                INTERNAL_HtmlDomManager.RemoveFromGlobalStore(element.INTERNAL_AdditionalOutsideDivForMargins as INTERNAL_HtmlDomElementReference);                
             }
 
             // Traverse all elements recursively:

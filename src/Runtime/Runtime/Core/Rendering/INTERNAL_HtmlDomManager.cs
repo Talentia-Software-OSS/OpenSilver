@@ -117,11 +117,20 @@ namespace CSHTML5.Internal // IMPORTANT: if you change this namespace, make sure
                 {
                     domNodeRef.Parent.FirstChild = null;
                 }
-                INTERNAL_idsToUIElements.Remove(domNodeRef.UniqueIdentifier);
-                domNodeRef.Parent = null;
-                INTERNAL_HtmlDomStyleReference.Clean(domNodeRef.UniqueIdentifier);
+                RemoveFromGlobalStore(domNodeRef);
+            }
+        }
+
+        internal static void RemoveFromGlobalStore(INTERNAL_HtmlDomElementReference htmlDomElRef)
+        {
+            if (htmlDomElRef == null)
+            {
+                return;
             }
 
+            INTERNAL_idsToUIElements.Remove(htmlDomElRef.UniqueIdentifier);
+            htmlDomElRef.Parent = null;
+            INTERNAL_HtmlDomStyleReference.Clean(htmlDomElRef.UniqueIdentifier);
         }
 
         private static void CleanUpStore(object state)
