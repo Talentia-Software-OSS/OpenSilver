@@ -43,7 +43,7 @@ namespace CSHTML5.Internal
 #endif
 
 #if CSHTML5NETSTANDARD
-    public class INTERNAL_HtmlDomStyleReference : DynamicObject
+    public class INTERNAL_HtmlDomStyleReference //: DynamicObject
 #else
     internal class INTERNAL_HtmlDomStyleReference : DynamicObject
 #endif
@@ -66,6 +66,14 @@ namespace CSHTML5.Internal
             }
         }
 
+        public static void Clean(string elementId)
+        {
+            if (IdToInstance.ContainsKey(elementId))
+            {
+                IdToInstance.Remove(elementId);
+            }
+        }
+
         internal string Uid { get; }
 
         // Note: It's important that the constructor stays Private because we need to recycle the instances that correspond to the same ID using the "GetInstance" public static method, so thateach ID always corresponds to the same instance. This is useful to ensure that private fields such as "_display" work propertly.
@@ -74,32 +82,32 @@ namespace CSHTML5.Internal
             Uid = elementId;
         }
 
-        public override bool TrySetMember(SetMemberBinder binder, object value)
-        {
-            //            string javaScriptCodeToExecute = string.Format(@"
-            //                    var element = document.getElementByIdSafe(""{0}"");
-            //                    element.style.{1} = ""{2}"";
-            //                ", _domElementUniqueIdentifier, binder.Name, value);
+//        public override bool TrySetMember(SetMemberBinder binder, object value)
+//        {
+//            //            string javaScriptCodeToExecute = string.Format(@"
+//            //                    var element = document.getElementByIdSafe(""{0}"");
+//            //                    element.style.{1} = ""{2}"";
+//            //                ", _domElementUniqueIdentifier, binder.Name, value);
 
-            SetStylePropertyValue(binder.Name, (value ?? "").ToString());
+//            SetStylePropertyValue(binder.Name, (value ?? "").ToString());
 
-            //System.Diagnostics.Debug.WriteLine("Style property: " + binder.Name);
+//            //System.Diagnostics.Debug.WriteLine("Style property: " + binder.Name);
 
-#if PERFORMANCE_ANALYSIS
-            if (NumberOfTimesEachDynamicMemberIsCalled.ContainsKey(binder.Name))
-                NumberOfTimesEachDynamicMemberIsCalled[binder.Name] = NumberOfTimesEachDynamicMemberIsCalled[binder.Name] + 1;
-            else
-                NumberOfTimesEachDynamicMemberIsCalled.Add(binder.Name, 1);
-#endif
+//#if PERFORMANCE_ANALYSIS
+//            if (NumberOfTimesEachDynamicMemberIsCalled.ContainsKey(binder.Name))
+//                NumberOfTimesEachDynamicMemberIsCalled[binder.Name] = NumberOfTimesEachDynamicMemberIsCalled[binder.Name] + 1;
+//            else
+//                NumberOfTimesEachDynamicMemberIsCalled.Add(binder.Name, 1);
+//#endif
 
-#if CHECK_THAT_ID_EXISTS
-            var domElement = INTERNAL_HtmlDomManager.ExecuteJavaScriptWithResult("document.getElementByIdSafe(\"" + _domElementUniqueIdentifier + "\")");
-            if (domElement == null)
-                throw new Exception("DOM element ID not found: " + _domElementUniqueIdentifier);
-#endif
+//#if CHECK_THAT_ID_EXISTS
+//            var domElement = INTERNAL_HtmlDomManager.ExecuteJavaScriptWithResult("document.getElementByIdSafe(\"" + _domElementUniqueIdentifier + "\")");
+//            if (domElement == null)
+//                throw new Exception("DOM element ID not found: " + _domElementUniqueIdentifier);
+//#endif
 
-            return true;
-        }
+//            return true;
+//        }
 
         void SetStylePropertyValue(string propertyName, string propertyValue)
         {

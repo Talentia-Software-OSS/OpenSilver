@@ -38,6 +38,7 @@ using DotNetBrowser;
 #if MIGRATION
 using System.Windows;
 using System.Windows.Controls;
+using System.Threading;
 #else
 using Windows.Foundation;
 using Windows.UI.Xaml;
@@ -54,13 +55,15 @@ namespace CSHTML5.Internal // IMPORTANT: if you change this namespace, make sure
 #if !BRIDGE
         [JSIgnore]
 #endif
-        internal static Dictionary<string, WeakReference<UIElement>> INTERNAL_idsToUIElements;
+        internal static Dictionary<string, WeakReference> INTERNAL_idsToUIElements;
+
+        private static readonly Timer _timer = new Timer(CleanUpStore, null, 1000 * 15, 1000 * 15);
 
         static INTERNAL_HtmlDomManager()
         {
             if (!IsRunningInJavaScript())
             {
-                INTERNAL_idsToUIElements = new Dictionary<string, WeakReference<UIElement>>();
+                INTERNAL_idsToUIElements = new Dictionary<string, WeakReference>();
             }
         }
 
@@ -115,8 +118,20 @@ namespace CSHTML5.Internal // IMPORTANT: if you change this namespace, make sure
                     domNodeRef.Parent.FirstChild = null;
                 }
                 INTERNAL_idsToUIElements.Remove(domNodeRef.UniqueIdentifier);
+                domNodeRef.Parent = null;
+                INTERNAL_HtmlDomStyleReference.Clean(domNodeRef.UniqueIdentifier);
             }
 
+        }
+
+        private static void CleanUpStore(object state)
+        {
+            var list = INTERNAL_idsToUIElements.Where(kvp => kvp.Value == null).ToList();
+            foreach (var key in list)
+            {
+                INTERNAL_idsToUIElements.Remove(key);
+                INTERNAL_HtmlDomStyleReference.Clean(key.Key);                
+            }
         }
 
 #if CSHTML5NETSTANDARD
@@ -939,7 +954,7 @@ function(){
                 Interop.ExecuteJavaScriptFastAsync($@"document.createElementSafe(""{domElementTag}"", ""{uniqueIdentifier}"", {sParentRef}, {index.ToInvariantString()})");
             }
             
-            INTERNAL_idsToUIElements.Add(uniqueIdentifier, new WeakReference<UIElement>(associatedUIElement));
+            INTERNAL_idsToUIElements.Add(uniqueIdentifier, new WeakReference(associatedUIElement));
 
             return new INTERNAL_HtmlDomElementReference(uniqueIdentifier, parent); //todo: when parent is null this breaks for the root control, but the whole logic will be replaced with simple "ExecuteJavaScript" calls in the future, so it will not be a problem.
         }
@@ -967,7 +982,7 @@ var parentElement = document.getElementByIdSafe(""{parentUniqueIdentifier}"");
     parentElement.children[{insertionIndex}].insertAdjacentElement(""{relativePosition}"", newElement);";
 
             ExecuteJavaScript(javaScriptToExecute);
-            INTERNAL_idsToUIElements.Add(uniqueIdentifier, new WeakReference<UIElement>(associatedUIElement));
+            INTERNAL_idsToUIElements.Add(uniqueIdentifier, new WeakReference(associatedUIElement));
             return new INTERNAL_HtmlDomElementReference(uniqueIdentifier, (INTERNAL_HtmlDomElementReference)parentRef);
         }
 
@@ -1001,7 +1016,7 @@ var parentElement = document.getElementByIdSafe(""{parentUniqueIdentifier}"");
 parentElement.appendChild(newElement);";
 
                 ExecuteJavaScript(javaScriptToExecute);
-                INTERNAL_idsToUIElements.Add(uniqueIdentifier, new WeakReference<UIElement>(associatedUIElement));
+                INTERNAL_idsToUIElements.Add(uniqueIdentifier, new WeakReference(associatedUIElement));
                 return new INTERNAL_HtmlDomElementReference(uniqueIdentifier, ((INTERNAL_HtmlDomElementReference)parentRef).Parent);
                 //todo-perfs: check if there is a better solution in terms of performance (while still remaining compatible with all browsers).
 #if !CSHTML5NETSTANDARD
@@ -1249,9 +1264,9 @@ parentElement.appendChild(child);";
                         if (INTERNAL_HtmlDomManager.INTERNAL_idsToUIElements.ContainsKey(id))
                         {
                             var weakReference = INTERNAL_HtmlDomManager.INTERNAL_idsToUIElements[id];
-                            if (weakReference.TryGetTarget(out var uie))
+                            if (weakReference.Target != null)
                             {
-                                result = uie;
+                                result = (UIElement)weakReference.Target;
                             }
                             else
                             {
