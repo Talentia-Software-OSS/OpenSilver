@@ -165,13 +165,13 @@ namespace CSHTML5.Types
                 {
                     result = array[ArrayIndex];
                 }
-                else if (Value != null && (fullName == "DotNetBrowser.JSObject"))
+                else if (Value != null && (fullName == "DotNetBrowser.JSObject" || fullName == "System.Text.Json.JsonElement"))
                 {
                     result = ((dynamic)Value).GetProperty(ArrayIndex.ToString());
                 }
                 else
                 {
-                    throw new InvalidOperationException("Value is marked as array but is neither an object[], nor a JSArray, nor a JSObject. ReferenceId: " + (this.ReferenceId ?? "n/a"));
+                    throw new InvalidOperationException("Value is marked as array but is neither an object[], nor a JSArray, nor a JSObject, nor a JsonElement. ReferenceId: " + (this.ReferenceId ?? "n/a"));
                 }
             }
             else
@@ -195,8 +195,10 @@ namespace CSHTML5.Types
             {
                 return ((dynamic)result).GetString();
             }
-
-            return DotNetForHtml5.Core.INTERNAL_Simulator.ConvertBrowserResult(result);
+            else
+            {
+                return result;
+            }
         }
 
         public bool IsUndefined()
