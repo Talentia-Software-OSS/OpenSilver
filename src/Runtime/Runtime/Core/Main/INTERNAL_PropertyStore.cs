@@ -210,6 +210,21 @@ namespace CSHTML5.Internal
                                  true); // propagateChanges
         }
 
+        internal static void DetachExpression(INTERNAL_PropertyStorage storage)
+        {
+            var currentExpr = storage.IsExpression
+                  ? storage.LocalValue as Expression
+                  : null;
+
+            if (currentExpr != null)
+            {
+                currentExpr.OnDetach(storage.Owner, storage.Property);
+
+                // Reset local value
+                storage.LocalValue = DependencyProperty.UnsetValue;                
+            }
+        }
+
         internal static void CoerceValueCommon(INTERNAL_PropertyStorage storage)
         {
             if (storage.IsCoercedWithCurrentValue)

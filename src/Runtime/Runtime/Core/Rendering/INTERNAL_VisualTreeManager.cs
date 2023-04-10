@@ -197,6 +197,9 @@ namespace CSHTML5.Internal
             //We detach the events from the dom element:
             element.INTERNAL_DetachFromDomEvents();
 
+            // Detach Bindings to prevent PropertyNode leak
+            element.DetachBindings();
+
             // Call the "Unloaded" event: (note: in XAML, the "unloaded" event of the parent is called before the "unloaded" event of the children)
             element._isLoaded = false;
             if (element is FrameworkElement)
@@ -211,7 +214,7 @@ namespace CSHTML5.Internal
 
                 INTERNAL_HtmlDomManager.RemoveFromGlobalStore(element.INTERNAL_OuterDomElement as INTERNAL_HtmlDomElementReference);
                 INTERNAL_HtmlDomManager.RemoveFromGlobalStore(element.INTERNAL_InnerDomElement as INTERNAL_HtmlDomElementReference);
-                INTERNAL_HtmlDomManager.RemoveFromGlobalStore(element.INTERNAL_AdditionalOutsideDivForMargins as INTERNAL_HtmlDomElementReference);                
+                INTERNAL_HtmlDomManager.RemoveFromGlobalStore(element.INTERNAL_AdditionalOutsideDivForMargins as INTERNAL_HtmlDomElementReference);
             }
 
             // Traverse all elements recursively:

@@ -630,5 +630,27 @@ namespace Windows.UI.Xaml
         {
             return default(object);
         }
+
+        public void DetachExpression(DependencyProperty dp)
+        {
+            INTERNAL_PropertyStorage storage;
+            if (INTERNAL_PropertyStore.TryGetStorage(this, dp, false/*don't create*/, out storage))
+            {
+                INTERNAL_PropertyStore.DetachExpression(storage);
+            }
+        }
+
+        public void DetachBindings()
+        {
+            foreach (var property in this.INTERNAL_AllInheritedProperties.Keys)
+            {
+                DetachExpression(property);
+            }
+
+            foreach (var property in this.INTERNAL_PropertyStorageDictionary.Keys)
+            {
+                DetachExpression(property);
+            }
+        }
     }
 }
