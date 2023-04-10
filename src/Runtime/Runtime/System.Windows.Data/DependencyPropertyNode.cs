@@ -52,6 +52,10 @@ namespace Windows.UI.Xaml.Data
                 object value = sourceDO.GetValue(_dp);
                 UpdateValueAndIsBroken(value, value == null);
             }
+            else if (Value != null)
+            {
+                UpdateValueAndIsBroken(null, true);
+            }
         }
 
         internal override void OnSourceChanged(object oldvalue, object newValue)
