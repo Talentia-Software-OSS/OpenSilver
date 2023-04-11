@@ -39,6 +39,7 @@ using DotNetBrowser;
 using System.Windows;
 using System.Windows.Controls;
 using System.Threading;
+using DotNetForHtml5;
 #else
 using Windows.Foundation;
 using Windows.UI.Xaml;
@@ -57,7 +58,11 @@ namespace CSHTML5.Internal // IMPORTANT: if you change this namespace, make sure
 #endif
         internal static Dictionary<string, WeakReference> INTERNAL_idsToUIElements;
 
-        private static readonly Timer _timer = new Timer(CleanUpStore, null, 1000 * 15, 1000 * 15);
+        private static readonly Timer _timer = new Timer(
+            CleanUpStore, 
+            null, 
+            Cshtml5Initializer.CleanupTimersInterval,
+            Cshtml5Initializer.CleanupTimersInterval);
 
         static INTERNAL_HtmlDomManager()
         {

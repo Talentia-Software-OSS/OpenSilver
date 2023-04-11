@@ -13,13 +13,16 @@
 \*====================================================================================*/
 
 
+using DotNetForHtml5;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media;
 
 #if MIGRATION
 namespace System.Windows
@@ -35,29 +38,81 @@ namespace Windows.UI.Xaml
         }
     }
 
+    public static class WeakStorageForPropertiesTracker
+    {
+        private static readonly Dictionary<WeakReference, WeakStorageForProperties> tracker
+            = new Dictionary<WeakReference, WeakStorageForProperties>();
+        private static readonly object _lock = new object();
+        private static readonly Timer _timer = new Timer(
+                CleanUpTrackingStore,
+                null,
+                Cshtml5Initializer.CleanupTimersInterval,
+                Cshtml5Initializer.CleanupTimersInterval);
+
+        private static void CleanUpTrackingStore(object state)
+        {
+            lock (_lock)
+            {
+                foreach (var storage in tracker.ToList())
+                {
+                    storage.Value.CleanUpStore();
+                    if (storage.Key.Target == null)
+                    {
+                        tracker.Remove(storage.Key);
+                    }
+                }
+            }
+        }
+
+        public static WeakStorageForProperties GetStorage(IHasAccessToPropertiesWhereItIsUsed obj)
+        {
+            lock(_lock)
+            {
+                foreach(var storage in tracker.ToList())
+                {
+                    if (storage.Key.Target == null)
+                    {
+                        storage.Value.CleanUpStore();
+                        tracker.Remove(storage.Key);
+                    }
+                    else if (storage.Key.Target == obj)
+                    {
+                        return storage.Value;
+                    }
+                }
+
+                var result = new WeakStorageForProperties();
+                tracker[new WeakReference(obj)] = result;
+                return result;
+            }
+        }
+    }
+
+
     public class WeakStorageForProperties : IEnumerable<KeyValuePair<DependencyObject, DependencyProperty>>
     {
+        private readonly ConditionalWeakTable<DependencyObject, List<DependencyProperty>> table;
+        private readonly List<WeakReference> references;
+        private readonly object referencesLock = new object();
 
-        private Dictionary<int, WeakReference<DependencyObject>> _objectRefTable;
-        private Dictionary<int, List<DependencyProperty>> _propertyRefTable;
-
-        private ConditionalWeakTable<DependencyObject, List<DependencyProperty>> table;
-        private List<WeakReference<DependencyObject>> references;
-
-        public WeakStorageForProperties()
+        internal WeakStorageForProperties()
         {
             table = new ConditionalWeakTable<DependencyObject, List<DependencyProperty>>();
-            references = new List<WeakReference<DependencyObject>>();
+            references = new List<WeakReference>();
         }
 
         public void Add(DependencyObject item, DependencyProperty dependencyProperty)
         {
             List<DependencyProperty> dependencyProperties = GetOrCreateValue(item);
-            if (!dependencyProperties.Contains(dependencyProperty))
+            lock (dependencyProperties)
             {
-                dependencyProperties.Add(dependencyProperty);
+                if (!dependencyProperties.Contains(dependencyProperty))
+                {
+                    dependencyProperties.Add(dependencyProperty);
+                }
             }
         }
+
         public void Add(KeyValuePair<DependencyObject, DependencyProperty> tuple)
         {
             Add(tuple.Key, tuple.Value);
@@ -75,22 +130,26 @@ namespace Windows.UI.Xaml
 
         public IEnumerator<KeyValuePair<DependencyObject, DependencyProperty>> GetEnumerator()
         {
-            List<KeyValuePair<DependencyObject, DependencyProperty>> retValue = new List<KeyValuePair<DependencyObject, DependencyProperty>>();
-            foreach (var wdo in references.ToList())
+            lock (referencesLock)
             {
-                if (wdo.TryGetTarget(out var dependencyObject))
+                List<KeyValuePair<DependencyObject, DependencyProperty>> retValue = new List<KeyValuePair<DependencyObject, DependencyProperty>>();
+                foreach (var wdo in references.ToList())
                 {
-                    foreach (var dp in table.GetOrCreateValue(dependencyObject).ToList())
+                    if (wdo.Target != null)
                     {
-                        retValue.Add(new KeyValuePair<DependencyObject, DependencyProperty>(dependencyObject, dp));
+                        var dependecyObject = wdo.Target as DependencyObject;
+                        foreach (var dp in table.GetOrCreateValue(dependecyObject).ToList())
+                        {
+                            retValue.Add(new KeyValuePair<DependencyObject, DependencyProperty>(dependecyObject, dp));
+                        }
+                    }
+                    else
+                    {
+                        references.Remove(wdo);
                     }
                 }
-                else
-                {
-                    references.Remove(wdo);
-                }
+                return retValue.GetEnumerator();
             }
-            return retValue.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -100,45 +159,59 @@ namespace Windows.UI.Xaml
 
         private List<DependencyProperty> GetOrCreateValue(DependencyObject item)
         {
-            foreach (var wdo in references.ToList())
+            lock (referencesLock)
             {
-                if(wdo.TryGetTarget(out var dependencyObject))
+                foreach (var wdo in references.ToList())
                 {
-                    // We already have the item as key
-                    if (item == dependencyObject)
+                    if (wdo.Target != null)
                     {
-                        return table.GetOrCreateValue(item);
+                        var dependencyObject = wdo.Target as DependencyObject;
+
+                        // We already have the item as key
+                        if (item == dependencyObject)
+                        {
+                            return table.GetOrCreateValue(item);
+                        }
+                    }
+
+                    // Cleanup
+                    else
+                    {
+                        references.Remove(wdo);
                     }
                 }
 
-                // Cleanup
-                else 
-                {
-                    references.Remove(wdo);
-                }
+                // Not found
+                references.Add(new WeakReference(item));
+                return table.GetOrCreateValue(item);
             }
-
-            // Not found
-            references.Add(new WeakReference<DependencyObject>(item));
-            return table.GetOrCreateValue(item);
         }
 
         private void RemoveValue(DependencyObject item, DependencyProperty dependencyProperty)
         {
             if (table.TryGetValue(item, out List<DependencyProperty> dependencyProperties))
             {
-                dependencyProperties.Remove(dependencyProperty);
+                lock(dependencyProperties)
+                {
+                    dependencyProperties.Remove(dependencyProperty);
+                }
             }
             else
             {
 
                 // Cleanup references
-                foreach (var wdo in references.ToList())
+                CleanUpStore();
+            }
+        }
+
+        internal void CleanUpStore()
+        {
+            lock (referencesLock)
+            {
+                // Cleanup references
+                foreach (var wdo in references.Where(wdo => wdo.Target == null).ToList())
                 {
-                    if (!wdo.TryGetTarget(out var dependencyObject))
-                    {
-                        references.Remove(wdo);
-                    }
+                    references.Remove(wdo);
                 }
             }
         }

@@ -12,6 +12,7 @@
 \*====================================================================================*/
 
 
+using DotNetForHtml5;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -23,7 +24,11 @@ namespace CSHTML5.Internal
     internal class JavascriptCallback : IDisposable
     {
         private static readonly SynchronizedStore<JavascriptCallback> _store = new SynchronizedStore<JavascriptCallback>();
-        private static readonly Timer _timer = new Timer(CleanUpStore, null, 1000 * 30, 1000 * 30);
+        private static readonly Timer _timer = new Timer(
+            CleanUpStore,
+            null, 
+            Cshtml5Initializer.CleanupTimersInterval, 
+            Cshtml5Initializer.CleanupTimersInterval);
 
         private MethodInfo _delegateInfo;
         private WeakReference _delegateTarget;

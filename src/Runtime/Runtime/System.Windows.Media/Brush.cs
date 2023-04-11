@@ -58,7 +58,7 @@ namespace Windows.UI.Xaml.Media
             {
                 if(_propertiesWhereUsed == null)
                 {
-                    _propertiesWhereUsed = new WeakStorageForProperties();
+                    _propertiesWhereUsed = WeakStorageForPropertiesTracker.GetStorage(this);
                 }
                 return _propertiesWhereUsed;
             }

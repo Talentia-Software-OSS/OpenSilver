@@ -23,6 +23,8 @@ namespace DotNetForHtml5
     {
         public static int PendingJsBufferSize { get; set; } = 1024 * 1024 * 2; // 2 MB
 
+        public static int CleanupTimersInterval { get; set; } = 15_000;
+
         public static PendingJavascriptImplementationType PendingJavascriptImplementationType { get; set; }
             = PendingJavascriptImplementationType.PendingJavascriptJoin; // Leave the tested variant as a default
 
