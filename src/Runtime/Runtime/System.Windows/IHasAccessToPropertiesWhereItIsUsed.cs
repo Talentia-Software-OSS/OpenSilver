@@ -16,12 +16,14 @@
 using DotNetForHtml5;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 #if MIGRATION
@@ -91,26 +93,33 @@ namespace Windows.UI.Xaml
 
     public class WeakStorageForProperties : IEnumerable<KeyValuePair<DependencyObject, DependencyProperty>>
     {
-        private readonly ConditionalWeakTable<DependencyObject, List<DependencyProperty>> table;
-        private readonly List<WeakReference> references;
-        private readonly object referencesLock = new object();
+        private readonly ConcurrentDictionary<WeakReference, List<DependencyProperty>> table;
 
         internal WeakStorageForProperties()
         {
-            table = new ConditionalWeakTable<DependencyObject, List<DependencyProperty>>();
-            references = new List<WeakReference>();
+            table = new ConcurrentDictionary<WeakReference, List<DependencyProperty>>();
         }
 
         public void Add(DependencyObject item, DependencyProperty dependencyProperty)
         {
-            List<DependencyProperty> dependencyProperties = GetOrCreateValue(item);
-            lock (dependencyProperties)
+            CleanUpStore();
+            var keyItem = table.Keys.ToList().FirstOrDefault(refObj => refObj.Target == item);
+            if (null == keyItem)
             {
-                if (!dependencyProperties.Contains(dependencyProperty))
-                {
-                    dependencyProperties.Add(dependencyProperty);
-                }
+                keyItem = new WeakReference(item);
             }
+
+            table.AddOrUpdate(
+                keyItem, 
+                new List<DependencyProperty> { dependencyProperty },
+                (_, list) => 
+                {
+                    lock(list)
+                    {
+                        list.Add(dependencyProperty); 
+                        return list;
+                    }
+                });
         }
 
         public void Add(KeyValuePair<DependencyObject, DependencyProperty> tuple)
@@ -120,35 +129,32 @@ namespace Windows.UI.Xaml
 
         public void Remove(DependencyObject item, DependencyProperty dependencyProperty)
         {
-            RemoveValue(item, dependencyProperty);
+            CleanUpStore();
+            var keyItem = table.Keys.ToList().FirstOrDefault(refObj => refObj.Target == item);
+            if (keyItem != null && table.TryGetValue(keyItem, out var list))
+            {
+                lock (list)
+                {
+                    list.Remove(dependencyProperty);
+                }
+            }
         }
 
         public void Remove(KeyValuePair<DependencyObject, DependencyProperty> tuple)
         {
-            RemoveValue(tuple.Key, tuple.Value);
+            Remove(tuple.Key, tuple.Value);
         }
 
         public IEnumerator<KeyValuePair<DependencyObject, DependencyProperty>> GetEnumerator()
         {
-            lock (referencesLock)
+            CleanUpStore();
+            foreach (var kvp in table)
             {
-                List<KeyValuePair<DependencyObject, DependencyProperty>> retValue = new List<KeyValuePair<DependencyObject, DependencyProperty>>();
-                foreach (var wdo in references.ToList())
+                var item = kvp.Key;
+                foreach (var dp in kvp.Value.ToList())
                 {
-                    if (wdo.Target != null)
-                    {
-                        var dependecyObject = wdo.Target as DependencyObject;
-                        foreach (var dp in table.GetOrCreateValue(dependecyObject).ToList())
-                        {
-                            retValue.Add(new KeyValuePair<DependencyObject, DependencyProperty>(dependecyObject, dp));
-                        }
-                    }
-                    else
-                    {
-                        references.Remove(wdo);
-                    }
+                    yield return new KeyValuePair<DependencyObject, DependencyProperty>(item.Target as DependencyObject, dp);
                 }
-                return retValue.GetEnumerator();
             }
         }
 
@@ -157,61 +163,13 @@ namespace Windows.UI.Xaml
             return GetEnumerator();
         }
 
-        private List<DependencyProperty> GetOrCreateValue(DependencyObject item)
-        {
-            lock (referencesLock)
-            {
-                foreach (var wdo in references.ToList())
-                {
-                    if (wdo.Target != null)
-                    {
-                        var dependencyObject = wdo.Target as DependencyObject;
-
-                        // We already have the item as key
-                        if (item == dependencyObject)
-                        {
-                            return table.GetOrCreateValue(item);
-                        }
-                    }
-
-                    // Cleanup
-                    else
-                    {
-                        references.Remove(wdo);
-                    }
-                }
-
-                // Not found
-                references.Add(new WeakReference(item));
-                return table.GetOrCreateValue(item);
-            }
-        }
-
-        private void RemoveValue(DependencyObject item, DependencyProperty dependencyProperty)
-        {
-            if (table.TryGetValue(item, out List<DependencyProperty> dependencyProperties))
-            {
-                lock(dependencyProperties)
-                {
-                    dependencyProperties.Remove(dependencyProperty);
-                }
-            }
-            else
-            {
-
-                // Cleanup references
-                CleanUpStore();
-            }
-        }
-
         internal void CleanUpStore()
         {
-            lock (referencesLock)
+            foreach (var kvp in table)
             {
-                // Cleanup references
-                foreach (var wdo in references.Where(wdo => wdo.Target == null).ToList())
+                if (kvp.Key.Target == null)
                 {
-                    references.Remove(wdo);
+                    table.TryRemove(kvp.Key, out _);
                 }
             }
         }
