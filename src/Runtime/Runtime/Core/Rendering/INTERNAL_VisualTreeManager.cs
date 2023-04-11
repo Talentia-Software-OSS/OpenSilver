@@ -197,9 +197,6 @@ namespace CSHTML5.Internal
             //We detach the events from the dom element:
             element.INTERNAL_DetachFromDomEvents();
 
-            // Detach Bindings to prevent PropertyNode leak
-            element.DetachBindings();
-
             // Call the "Unloaded" event: (note: in XAML, the "unloaded" event of the parent is called before the "unloaded" event of the children)
             element._isLoaded = false;
             if (element is FrameworkElement)
