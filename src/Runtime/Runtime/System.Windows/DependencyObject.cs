@@ -649,5 +649,10 @@ namespace Windows.UI.Xaml
                 }
             }
         }
+
+        ~DependencyObject()
+        {
+            DetachBindings();
+        }
     }
 }
