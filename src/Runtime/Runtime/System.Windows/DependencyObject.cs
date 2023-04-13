@@ -637,7 +637,7 @@ namespace Windows.UI.Xaml
             {
                 if (null != storage)
                 {
-                    INTERNAL_PropertyStore.DetachExpression(storage);
+                    INTERNAL_PropertyStore.DetachBindingAndListeners(storage);
                 }
             }
 
@@ -645,7 +645,7 @@ namespace Windows.UI.Xaml
             {
                 if (null != storage)
                 {
-                    INTERNAL_PropertyStore.DetachExpression(storage);
+                    INTERNAL_PropertyStore.DetachBindingAndListeners(storage);
                 }
             }
         }

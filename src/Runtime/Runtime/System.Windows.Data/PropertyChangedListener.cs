@@ -41,7 +41,7 @@ namespace Windows.UI.Xaml.Data
 
         public void Detach()
         {
-            _storage.PropertyListeners.Remove(this);
+            _storage?.PropertyListeners?.Remove(this);
             _sourceCallBack = null;
         }
 

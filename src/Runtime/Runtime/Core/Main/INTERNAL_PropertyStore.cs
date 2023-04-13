@@ -4,6 +4,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 
 #if MIGRATION
@@ -210,9 +212,9 @@ namespace CSHTML5.Internal
                                  true); // propagateChanges
         }
 
-        internal static void DetachExpression(INTERNAL_PropertyStorage storage)
+        internal static void DetachBindingAndListeners(INTERNAL_PropertyStorage storage)
         {
-            var currentExpr = storage.IsExpression
+            var currentExpr = storage.IsExpression || storage.IsExpressionFromStyle
                   ? storage.LocalValue as Expression
                   : null;
 
@@ -222,6 +224,16 @@ namespace CSHTML5.Internal
 
                 // Reset local value
                 storage.LocalValue = DependencyProperty.UnsetValue;                
+            }
+
+            if (storage.PropertyListeners != null)
+            {
+                var listeners = storage.PropertyListeners.ToArray();
+                foreach (var listener in listeners)
+                {
+                    listener.Detach();
+                    storage.PropertyListeners.Remove(listener);
+                }
             }
         }
 
