@@ -110,13 +110,17 @@ namespace TypeScriptDefToCSharp
 
                     Logger.WriteMessage("Parsing file: " + fileName);
 
-                    // Display the Progress Dialog (on UI thread):
                     typeScriptFileNameToProgress[fileName] = "Processing " + fileName;
-                    ProgressDialog.ShowOnUIThread(fileName, typeScriptFileNameToProgress);
                     Action<string> methodToUpdateProgress = (text =>
-                        {
-                            typeScriptFileNameToProgress[fileName] = "processing token '" + (text ?? "") + "' in file '" + fileName + "'";
-                        });
+                    {
+                        typeScriptFileNameToProgress[fileName] = "processing token '" + (text ?? "") + "' in file '" + fileName + "'";
+                    });
+
+                    // Display the Progress Dialog (on UI thread):
+                    if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == null)
+                    {
+                        ProgressDialog.ShowOnUIThread(fileName, typeScriptFileNameToProgress);
+                    }
 
                     // Add this file to the New Infos
                     DTSNew.TypeScriptDefinitionFiles.Add(new TypeScriptDefinitionFile()
