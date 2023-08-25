@@ -1610,11 +1610,11 @@ document.ondblclick = null;
                 }
                 else if (previousMeasureValid && savedPreviousAvailableSize.IsClose(availableSize) && previousDesiredSize != Size.Empty)
                 {
-                    if (LayoutManager.Current.CheckChildMeasureValidation(this) == false)
-                    {
+                    //if (LayoutManager.Current.CheckChildMeasureValidation(this) == false)
+                    //{
                         DesiredSize = previousDesiredSize;
                         return;
-                    }
+                    //}
                 }
 
                 Size previousDesiredSizeInMeasure = this.DesiredSize;
