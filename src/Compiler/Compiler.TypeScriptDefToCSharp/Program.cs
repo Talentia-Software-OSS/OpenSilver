@@ -112,7 +112,12 @@ namespace TypeScriptDefToCSharp
 
                     // Display the Progress Dialog (on UI thread):
                     typeScriptFileNameToProgress[fileName] = "Processing " + fileName;
-                    ProgressDialog.ShowOnUIThread(fileName, typeScriptFileNameToProgress);
+
+                    // Check if we can open a GUI window or running in a docker container
+                    if (Environment.UserInteractive)
+                    {
+                        ProgressDialog.ShowOnUIThread(fileName, typeScriptFileNameToProgress);
+                    }
                     Action<string> methodToUpdateProgress = (text =>
                         {
                             typeScriptFileNameToProgress[fileName] = "processing token '" + (text ?? "") + "' in file '" + fileName + "'";
