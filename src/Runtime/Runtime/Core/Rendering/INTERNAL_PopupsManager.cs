@@ -246,7 +246,7 @@ var popupRoot = document.getElementByIdSafe(""{uniquePopupRootIdentifier}"");
 
         public static Point GetUIElementAbsolutePosition(UIElement element)
         {
-            if (INTERNAL_VisualTreeManager.IsElementInVisualTree(element))
+            if (element != null && INTERNAL_VisualTreeManager.IsElementInVisualTree(element))
             {
                 GeneralTransform gt = element.TransformToVisual(null);
 
