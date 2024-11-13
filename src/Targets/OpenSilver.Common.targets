@@ -497,10 +497,10 @@
 
     <PropertyGroup>
       <ResourcesSourceLocation>$(OutputAssemblyDirectory)</ResourcesSourceLocation>
-      <ResourcesSourceLocation Condition="'$(TargetFramework)' == 'net7.0' Or '$(TargetFramework)' == 'net8.0'">$(OutputAssemblyDirectory)\wwwroot\_framework</ResourcesSourceLocation>
+      <ResourcesSourceLocation Condition="'$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net8.0'">$(OutputAssemblyDirectory)\wwwroot\_framework</ResourcesSourceLocation>
       <ResourcesSourceLocation Condition="'$(WasmEnableWebcil)'=='True'">$(OutputAssemblyDirectory)</ResourcesSourceLocation>
       <ResourcesRootOutput>$(Cshtml5OutputRootPath)</ResourcesRootOutput>
-      <ResourcesRootOutput Condition="'$(TargetFramework)' == 'net7.0' Or '$(TargetFramework)' == 'net8.0'">$(OutputAssemblyDirectory)\..\..\..\wwwroot\</ResourcesRootOutput>
+      <ResourcesRootOutput Condition="'$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net8.0'">$(OutputAssemblyDirectory)\..\..\..\wwwroot\</ResourcesRootOutput>
     </PropertyGroup>
 
     <!--============================================================
