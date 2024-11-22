@@ -67,12 +67,12 @@ velocityScript.setAttribute('src', 'libs/ResizeObserver.js');
 document.getElementsByTagName('head')[0].appendChild(velocityScript);
 
 
-window.setCallback = function(csPackageName, csCallbackName, csErrorCallbackName) {
+window.setCallback = function(assemblyName, onCallbackMethod, onErrorCallbackMethod) {
 
 	window.onCallBack = (function() {
-		const opensilver = csPackageName;
-		const opensilver_js_callback = csCallbackName;
-		const opensilver_js_error_callback = csErrorCallbackName;
+		const opensilver = assemblyName;
+		const opensilver_js_callback = onCallbackMethod;
+		const opensilver_js_error_callback = onErrorCallbackMethod;
 		
 		function prepareCallbackArgs (args) {
 			let callbackArgs;
