@@ -21,10 +21,6 @@ using Bridge;
 using DotNetBrowser;
 #endif
 
-#if OPENSILVER
-using Microsoft.JSInterop;
-#endif
-
 namespace CSHTML5.Internal
 {
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -35,24 +31,13 @@ namespace CSHTML5.Internal
             CheckIsRunningInBrowser();
         }
 
-        [JSInvokable]
+        //[JSInvokable]
         public static void OnCallbackFromJavaScriptError(string idWhereCallbackArgsAreStored)
         {
             OnCallBackImpl.Instance.OnCallbackFromJavaScriptError(idWhereCallbackArgsAreStored);
         }
 
-        // This method can be removed later. Now it is used for easier migration from old opensilver.js to new one
-        [JSInvokable]
-        public static object OnCallbackFromJavaScript(
-            int callbackId,
-            string idWhereCallbackArgsAreStored,
-            object[] callbackArgsObject)
-        {
-            return OnCallbackFromJavaScriptBrowser(callbackId, idWhereCallbackArgsAreStored, callbackArgsObject,
-                false);
-        }
-
-        [JSInvokable]
+        //[JSInvokable]
         public static object OnCallbackFromJavaScriptBrowser(
             int callbackId,
             string idWhereCallbackArgsAreStored,

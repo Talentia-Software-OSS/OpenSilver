@@ -45,12 +45,6 @@ namespace DotNetForHtml5
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static void Initialize()
-        {
-            Initialize(new JavaScriptExecutionHandler());
-        }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public static void Initialize(IJavaScriptExecutionHandler2 executionHandler)
         {
             Initialize((IJavaScriptExecutionHandler)executionHandler);
