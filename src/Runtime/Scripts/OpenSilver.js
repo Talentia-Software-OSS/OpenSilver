@@ -67,58 +67,62 @@ velocityScript.setAttribute('src', 'libs/ResizeObserver.js');
 document.getElementsByTagName('head')[0].appendChild(velocityScript);
 
 
-window.onCallBack = (function() {
-	const opensilver = "OpenSilver";
-	const opensilver_js_callback = "OnCallbackFromJavaScriptBrowser";
-	const opensilver_js_error_callback = "OnCallbackFromJavaScriptError";
-	
-	function prepareCallbackArgs (args) {
-		let callbackArgs;
-		switch (typeof args) {
-			case 'number':
-			case 'string':
-			case 'boolean':
-				callbackArgs = args;
-				break;
-			case 'object':
-				// if we deal with an array, we need to check
-				// that all the items are primitive types.
-				if (Array.isArray(args)) {
-					callbackArgs = args;
-					for (let i = 0; i < args.length; i++) {
-						let itemType = typeof args[i];
-						// do not accept nested arrays for now
-						if (!(args[i] === null || itemType === 'number' || itemType === 'string' || itemType === 'boolean')) {
-							callbackArgs = [];
-							break;
-						}
-					}
-					break;
-				}
-				// if args === null, fall to next case.
-			case 'undefined':
-			default:
-				callbackArgs = [];
-				break;
-		}
-	
-		return callbackArgs;
-	}
-	
-	return {
-		OnCallbackFromJavaScript : function (callbackId, idWhereCallbackArgsAreStored, callbackArgsObject, returnValue) {
-			let formattedArgs = prepareCallbackArgs(callbackArgsObject);
-			const res = DotNet.invokeMethod(opensilver, opensilver_js_callback, callbackId, idWhereCallbackArgsAreStored, formattedArgs, returnValue || false);
-			if (returnValue) {
-				return res;
-			}
-		},
+window.setCallback = function(csPackageName, csCallbackName, csErrorCallbackName) {
+
+	window.onCallBack = (function() {
+		const opensilver = csPackageName;
+		const opensilver_js_callback = csCallbackName;
+		const opensilver_js_error_callback = csErrorCallbackName;
 		
-		OnCallbackFromJavaScriptError : function (idWhereCallbackArgsAreStored) {
-			DotNet.invokeMethod(opensilver, opensilver_js_error_callback, idWhereCallbackArgsAreStored);
+		function prepareCallbackArgs (args) {
+			let callbackArgs;
+			switch (typeof args) {
+				case 'number':
+				case 'string':
+				case 'boolean':
+					callbackArgs = args;
+					break;
+				case 'object':
+					// if we deal with an array, we need to check
+					// that all the items are primitive types.
+					if (Array.isArray(args)) {
+						callbackArgs = args;
+						for (let i = 0; i < args.length; i++) {
+							let itemType = typeof args[i];
+							// do not accept nested arrays for now
+							if (!(args[i] === null || itemType === 'number' || itemType === 'string' || itemType === 'boolean')) {
+								callbackArgs = [];
+								break;
+							}
+						}
+						break;
+					}
+					// if args === null, fall to next case.
+				case 'undefined':
+				default:
+					callbackArgs = [];
+					break;
+			}
+		
+			return callbackArgs;
 		}
-	};
-})();
+		
+		return {
+			OnCallbackFromJavaScript : function (callbackId, idWhereCallbackArgsAreStored, callbackArgsObject, returnValue) {
+				let formattedArgs = prepareCallbackArgs(callbackArgsObject);
+				const res = DotNet.invokeMethod(opensilver, opensilver_js_callback, callbackId, idWhereCallbackArgsAreStored, formattedArgs, returnValue || false);
+				if (returnValue) {
+					return res;
+				}
+			},
+			
+			OnCallbackFromJavaScriptError : function (idWhereCallbackArgsAreStored) {
+				DotNet.invokeMethod(opensilver, opensilver_js_error_callback, idWhereCallbackArgsAreStored);
+			}
+		};
+	})();
+}
+
 
 window.callJS = function (javaScriptToExecute) {
     //console.log(javaScriptToExecute);
