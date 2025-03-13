@@ -35,16 +35,15 @@ using DotNetForHtml5.EmulatorWithoutJavascript.LicenseChecking;
 using DotNetForHtml5.Compiler;
 using System.Threading;
 using System.Windows.Threading;
-using DotNetBrowser;
-using DotNetBrowser.WPF;
 using System.Windows.Media;
 using System.Threading.Tasks;
 using System.ComponentModel;
 using System.Net.NetworkInformation;
 using DotNetForHtml5.EmulatorWithoutJavascript.Debugging;
-using DotNetBrowser.Events;
 using DotNetForHtml5.EmulatorWithoutJavascript.Console;
 using System.Windows.Media.Imaging;
+using Microsoft.Web.WebView2.Wpf;
+
 #if OPENSILVER
 using OpenSilver.Simulator;
 #endif
@@ -76,7 +75,7 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
         string _outputResourcesPath;
         string _intermediateOutputAbsolutePath;
         bool _isFirstTimeJavaScriptCompilation = false;
-        WPFBrowserView MainWebBrowser;
+        WebView2 MainWebBrowser;
         ChromiumDevTools _devTools;
         bool _pendingRefreshOfHighlight = false;
         Assembly _coreAssembly;
@@ -155,6 +154,8 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
             Directory.CreateDirectory(_browserUserDataDir);
             if (CrossDomainCallsHelper.IsBypassCORSErrors)
             {
+
+
                 BrowserPreferences.SetChromiumSwitches(@"--disable-web-security");
             }
 
@@ -165,14 +166,14 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
                 @"--remote-debugging-port=9222"
             );
 
-            BrowserContextParams parameters = new BrowserContextParams(_browserUserDataDir)
-            {
-                StorageType = StorageType.DISK //Note: this is needed to remember the cookies
-            };
-            BrowserContext context = new BrowserContext(parameters);
-            context.NetworkService.NetworkDelegate = new ResourceInterceptor("http://cshtml5-simulator/");
-            Browser browser = BrowserFactory.Create(context, BrowserType.LIGHTWEIGHT);
-            MainWebBrowser = new WPFBrowserView(browser);
+            //BrowserContextParams parameters = new BrowserContextParams(_browserUserDataDir)
+            //{
+            //    StorageType = StorageType.DISK //Note: this is needed to remember the cookies
+            //};
+            //BrowserContext context = new BrowserContext(parameters);
+            //context.NetworkService.NetworkDelegate = new ResourceInterceptor("http://cshtml5-simulator/");
+            //Browser browser = BrowserFactory.Create(context, BrowserType.LIGHTWEIGHT);
+            MainWebBrowser = new WebView2();
 
             MainWebBrowser.Width = 150;
             MainWebBrowser.Height = 200;
