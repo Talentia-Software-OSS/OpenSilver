@@ -67,5 +67,15 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
         {
             opensilver::System.Windows.MessageBox.INTERNAL_CodeToShowTheMessageBoxWithTitleAndButtons = codeToShowTheMessageBoxWithTitleAndButtons;
         }
+
+        internal static void InjectConvertBrowserResult()
+        {
+            INTERNAL_Simulator.ConvertBrowserResult = (result) => result;
+        }
+
+        internal static void InjectIsUsingWebView2Simulator()
+        {
+            INTERNAL_Simulator.IsUsingWebView2Simulator = true;
+        }
     }
 }

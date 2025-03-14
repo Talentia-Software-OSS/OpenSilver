@@ -210,5 +210,7 @@ namespace DotNetForHtml5.Core
 #endif
 
         public static Func<object, object> ConvertBrowserResult { get; set; }
+
+        public static bool IsUsingWebView2Simulator { get; set; }
     }
 }

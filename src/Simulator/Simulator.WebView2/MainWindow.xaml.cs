@@ -612,11 +612,12 @@ Click OK to continue.";
                 // Create the JavaScriptExecutionHandler that will be called by the "Core" project to interact with the Emulator:
 
                 _javaScriptExecutionHandler = new JavaScriptExecutionHandler(MainWebBrowser);
-
+                InteropHelpers.InjectIsUsingWebView2Simulator();
                 InteropHelpers.InjectWebControlDispatcher(MainWebBrowser);
                 InteropHelpers.InjectJavaScriptExecutionHandler(_javaScriptExecutionHandler);
                 InteropHelpers.InjectWebClientFactory();
                 InteropHelpers.InjectClipboardHandler();
+                InteropHelpers.InjectConvertBrowserResult();
                 InteropHelpers.InjectSimulatorProxy(
                     new SimulatorProxy(MainWebBrowser,
                         Console,

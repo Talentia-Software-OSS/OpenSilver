@@ -24,6 +24,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Windows.Data;
 using System.Windows.Controls;
+using DotNetForHtml5.Core;
+
 #endif
 
 #if MIGRATION
@@ -55,7 +57,8 @@ namespace CSHTML5
                 return;
             }
 
-            if (OpenSilver.Interop.IsRunningInTheSimulator)
+            if (OpenSilver.Interop.IsRunningInTheSimulator
+                && !INTERNAL_Simulator.IsUsingWebView2Simulator)
             {
                 // Adding a property to the JavaScript "window" object:
                 dynamic jsWindow = INTERNAL_HtmlDomManager.ExecuteJavaScriptWithResult("window");
