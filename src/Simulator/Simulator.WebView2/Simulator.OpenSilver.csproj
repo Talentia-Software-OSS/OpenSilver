@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <OutputPath>bin\OpenSilver\$(Configuration)\</OutputPath>
+  </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MahApps.Metro" Version="2.4.10" />
+        <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+        <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3124.44" />
+        <PackageReference Include="Microsoft.Web.WebView2.DevToolsProtocolExtension" Version="1.0.2901" />
+        <PackageReference Include="System.Text.Json" Version="9.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--<ProjectReference Include="..\..\Runtime\Runtime\Runtime.OpenSilver.csproj">
+            <Aliases>opensilver</Aliases>
+        </ProjectReference>-->
+        <Reference Include="OpenSilver">
+            <HintPath>..\..\Runtime\Runtime\bin\OpenSilver\SL\netstandard2.0\OpenSilver.dll</HintPath>
+            <Aliases>opensilver</Aliases>
+        </Reference>
+        <ProjectReference Include="..\..\Runtime\OpenSilver.Xaml\OpenSilver.Xaml.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="interop_debug_root_opensilver.html">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Include="simulator_root_opensilver.html">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Resource Include="Expand-Icon-5.png" />
+        <Resource Include="OpenSilverIcon.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Update="App.xaml.cs">
+            <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Properties\Settings.Designer.cs">
+            <DesignTimeSharedInput>True</DesignTimeSharedInput>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Settings.settings</DependentUpon>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="Properties\Settings.settings">
+            <Generator>SettingsSingleFileGenerator</Generator>
+            <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+        </None>
+    </ItemGroup>
+    
+</Project>
