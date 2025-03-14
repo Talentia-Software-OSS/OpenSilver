@@ -14,6 +14,7 @@
 
 using CSHTML5.Types;
 using System;
+using System.Runtime.InteropServices;
 
 #if BRIDGE
 using Bridge;
@@ -25,7 +26,8 @@ using DotNetBrowser;
 
 namespace CSHTML5.Internal
 {
-    internal class OnCallbackSimulator
+    [ComVisible(true)]
+    public class OnCallbackSimulator
     {
         public OnCallbackSimulator()
         {
