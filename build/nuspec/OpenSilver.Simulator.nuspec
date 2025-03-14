@@ -15,9 +15,10 @@
 
     <dependencies>
       <group targetFramework="net462">
-        <dependency id="DotNetBrowser" version="1.21.5" />
-        <dependency id="MahApps.Metro" version="1.2.4.0" />
-        <dependency id="Microsoft.Web.Administration" version="7.0.0.0" />
+        <dependency id="MahApps.Metro" version="2.4.10" />
+        <dependency id="Microsoft.Web.WebView2" version="1.0.3124.44" />
+        <dependency id="Microsoft.Web.WebView2.DevToolsProtocolExtension" version="1.0.2901" />
+        <dependency id="System.Text.Json" version="9.0.3" />
       </group>
     </dependencies>
 

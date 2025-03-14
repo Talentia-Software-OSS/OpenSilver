@@ -17,31 +17,31 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using Settings = OpenSilver.Simulator.Properties.Settings;
+using System.Windows.Controls;
 
-namespace DotNetForHtml5.EmulatorWithoutJavascript
+namespace OpenSilver.Simulator.XamlInspection
 {
-    static class CrossDomainCallsHelper
+    public class TreeNodeDataTemplateSelector : DataTemplateSelector
     {
-        public static bool IsBypassCORSErrors
+        public DataTemplate NormalTemplate { get; set; }
+        public DataTemplate XamlSourcePathTemplate { get; set; }
+
+        public override DataTemplate SelectTemplate(object item, DependencyObject container)
         {
-            get
+            TreeNode treeNode = (TreeNode)item;
+            if (treeNode.IsNodeForXamlSourcePath)
             {
-                bool isBypassCORSErrors  = Settings.Default.IsBypassCORSErrors;
-                return isBypassCORSErrors;
+                return XamlSourcePathTemplate;
             }
-            set
+            else
             {
-                Settings.Default.IsBypassCORSErrors = value;
-
-                // SAVE:
-                Settings.Default.Save();
-
-                MessageBox.Show("Please restart the Simulator for the changes to take effect.");
+                return NormalTemplate;
             }
         }
     }

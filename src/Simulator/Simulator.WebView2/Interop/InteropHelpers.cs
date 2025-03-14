@@ -31,7 +31,7 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
         {
             INTERNAL_Simulator.WebControlDispatcherBeginInvoke = (method) => webControl.Dispatcher.BeginInvoke(method);
             INTERNAL_Simulator.WebControlDispatcherInvoke = (method, timeout) => webControl.Dispatcher.Invoke(method, timeout);
-            //INTERNAL_Simulator.WebControlDispatcherCheckAccess = () => webControl.Dispatcher.CheckAccess();
+            INTERNAL_Simulator.WebControlDispatcherCheckAccess = () => webControl.Dispatcher.CheckAccess();
         }
 
         internal static void InjectJavaScriptExecutionHandler(opensilver::DotNetForHtml5.IJavaScriptExecutionHandler javaScriptExecutionHandler)
@@ -61,8 +61,6 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
             //INTERNAL_Simulator.OpenSilverDispatcherBeginInvoke = (method) => dispatcher.BeginInvoke(method);
             //INTERNAL_Simulator.OpenSilverDispatcherInvoke = (method, timeout) => dispatcher.Invoke(method, timeout);
             //INTERNAL_Simulator.OpenSilverDispatcherCheckAccess = () => dispatcher.CheckAccess();
-            INTERNAL_Simulator.WebControlDispatcherBeginInvoke = (method) => dispatcher.BeginInvoke(method);
-            INTERNAL_Simulator.WebControlDispatcherInvoke = (method, timeout) => dispatcher.Invoke(method, timeout);
         }
 
         internal static void InjectCodeToDisplayTheMessageBox(Func<string, string, bool, bool> codeToShowTheMessageBoxWithTitleAndButtons)

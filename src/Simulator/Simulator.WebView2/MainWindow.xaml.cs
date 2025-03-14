@@ -6,6 +6,7 @@ using Microsoft.Web.WebView2.Core.DevToolsProtocolExtension;
 using Microsoft.Web.WebView2.Wpf;
 using Microsoft.Win32;
 using OpenSilver.Simulator;
+using OpenSilver.Simulator.XamlInspection;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -17,7 +18,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Path = System.IO.Path;
-using Settings = Simulator.WebView2.OpenSilver.Properties.Settings;
+using Settings = OpenSilver.Simulator.Properties.Settings;
 
 namespace DotNetForHtml5.EmulatorWithoutJavascript
 {
@@ -292,6 +293,20 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
             MainWebBrowser.CoreWebView2.Navigate(_simulatorUrl);
         }
 
+        private void SyncXamlInspectorVisibility()
+        {
+            bool xamlInspectorVisible = Settings.Default.XamlInspectorVisible;
+            if (xamlInspectorVisible &&
+                _entryPointAssembly != null &&
+                XamlInspectionTreeViewInstance.TryRefresh(_entryPointAssembly, XamlPropertiesPaneInstance))
+            {
+                MainGridSplitter.Visibility = Visibility.Visible;
+                BorderForXamlInspection.Visibility = Visibility.Visible;
+                ButtonViewXamlTree.Visibility = Visibility.Collapsed;
+                ContainerForXamlInspectorToolbar.Visibility = Visibility.Visible;
+                ButtonHideXamlTree.Visibility = Visibility.Visible;
+            }
+        }
 
         private string GetHeaders(string fileName)
         {
@@ -388,6 +403,8 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
                     }
 
                     HideLoadingMessage();
+
+                    SyncXamlInspectorVisibility();
 
                     await UpdateWebBrowserAndWebPageSizeBasedOnCurrentState();
                 }, DispatcherPriority.ApplicationIdle); // We do so in order to give the time to the rendering engine to display the "Loading..." message.
@@ -651,8 +668,10 @@ Click OK to continue.";
             const string name = "onCallBack";
             await Dispatcher.InvokeAsync(() =>
             {
-                //MainWebBrowser.CoreWebView2.AddHostObjectToScript(name, new opensilver::CSHTML5.Internal.OnCallbackSimulator());
+                MainWebBrowser.CoreWebView2.AddHostObjectToScript(name, new opensilver::CSHTML5.Internal.OnCallbackSimulator());
                 _javaScriptExecutionHandler.ExecuteJavaScript($"window.onCallBack = chrome.webview.hostObjects.{name};");
+
+                MainWebBrowser.CoreWebView2.AddHostObjectToScript("XamlInspectorCallback", new XamlInspectorCallback());
             });
         }
 
@@ -956,9 +975,78 @@ Click OK to continue.";
             await devToolsHelper.Emulation.SetEmitTouchEventsForMouseAsync(enable);
         }
 
+        private void ButtonViewXamlTree_Click(object sender, RoutedEventArgs e)
+        {
+            if (_entryPointAssembly != null
+                && XamlInspectionTreeViewInstance.TryRefresh(_entryPointAssembly, XamlPropertiesPaneInstance))
+            {
+                MainGridSplitter.Visibility = Visibility.Visible;
+                BorderForXamlInspection.Visibility = Visibility.Visible;
+                ButtonViewXamlTree.Visibility = Visibility.Collapsed;
+                ContainerForXamlInspectorToolbar.Visibility = Visibility.Visible;
+                ButtonHideXamlTree.Visibility = Visibility.Visible;
+
+                // Save opened state
+                Settings.Default.XamlInspectorVisible = true;
+                Settings.Default.Save();
+
+                // We activate the element picker by default:
+                StartElementPickerForInspection();
+            }
+            else
+            {
+                ButtonHideXamlTree_Click(sender, e);
+                MessageBox.Show("The Visual Tree is not available.");
+            }
+        }
+
         private void ButtonOpenDevTools_Click(object sender, RoutedEventArgs e)
         {
             MainWebBrowser.CoreWebView2.OpenDevToolsWindow();
+        }
+
+        private void ButtonHideXamlTree_Click(object sender, RoutedEventArgs e)
+        {
+            MainGridSplitter.Visibility = Visibility.Collapsed;
+            BorderForXamlInspection.Visibility = Visibility.Collapsed;
+            ButtonViewXamlTree.Visibility = Visibility.Visible;
+            ContainerForXamlInspectorToolbar.Visibility = Visibility.Collapsed;
+            ButtonHideXamlTree.Visibility = Visibility.Collapsed;
+            XamlPropertiesPaneInstance.Width = 0;
+
+            // Reset columns in case they were modified by the GridSplitter:
+            ColumnForLeftToolbar.Width = GridLength.Auto;
+            ColumnForMainWebBrowser.Width = new GridLength(1, GridUnitType.Star);
+            ColumnForGridSplitter.Width = GridLength.Auto;
+            ColumnForXamlInspection.Width = GridLength.Auto;
+            ColumnForXamlPropertiesPane.Width = GridLength.Auto;
+
+            // Save closed state
+            Settings.Default.XamlInspectorVisible = false;
+            Settings.Default.Save();
+
+            // Ensure that the element picker is not activated:
+            StopElementPickerForInspection();
+        }
+
+        private void ButtonRefreshXamlTree_Click(object sender, RoutedEventArgs e)
+        {
+            ButtonViewXamlTree_Click(sender, e);
+        }
+
+        void ButtonXamlInspectorOptions_Click(object sender, RoutedEventArgs e)
+        {
+            ((FrameworkElement)sender).ContextMenu.IsOpen = true;
+        }
+
+        void ButtonExpandAllNodes_Click(object sender, RoutedEventArgs e)
+        {
+            XamlInspectionTreeViewInstance.ExpandAllNodes();
+        }
+
+        void ButtonCollapseAllNodes_Click(object sender, RoutedEventArgs e)
+        {
+            XamlInspectionTreeViewInstance.CollapseAllNodes();
         }
 
         void SaveDisplaySize()
@@ -1069,6 +1157,41 @@ Click OK to continue.";
             Settings.Default.Save();
         }
 
+        #region Element Picker for XAML Inspection
+
+        void StartElementPickerForInspection()
+        {
+            if (ButtonViewHideElementPickerForInspector.IsChecked != true)
+                ButtonViewHideElementPickerForInspector.IsChecked = true;
+
+            // Show the tutorial:
+            InformationAboutHowThePickerWorks.Visibility = Visibility.Visible;
+
+            XamlInspectionHelper.StartInspection();
+        }
+
+        void StopElementPickerForInspection()
+        {
+            // Make sure the ToggleButton is in the correct state:
+            if (ButtonViewHideElementPickerForInspector.IsChecked == true)
+                ButtonViewHideElementPickerForInspector.IsChecked = false;
+
+            // Hide the tutorial:
+            InformationAboutHowThePickerWorks.Visibility = Visibility.Collapsed;
+
+            XamlInspectionHelper.StopInspection();
+        }
+
+        private void ButtonViewHideElementPickerForInspector_Click(object sender, RoutedEventArgs e)
+        {
+            if (ButtonViewHideElementPickerForInspector.IsChecked == true)
+                StartElementPickerForInspection();
+            else
+                StopElementPickerForInspection();
+        }
+
+        #endregion
+
         private void CheckBoxCORS_Checked(object sender, RoutedEventArgs e)
         {
             CrossDomainCallsHelper.IsBypassCORSErrors = true;
@@ -1077,6 +1200,21 @@ Click OK to continue.";
         private void CheckBoxCORS_Unchecked(object sender, RoutedEventArgs e)
         {
             CrossDomainCallsHelper.IsBypassCORSErrors = false;
+        }
+
+        private void MetroWindow_KeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.F11 && e.KeyboardDevice.Modifiers == System.Windows.Input.ModifierKeys.None)
+            {
+                if (BorderForXamlInspection.Visibility == Visibility.Visible)
+                {
+                    ButtonHideXamlTree_Click(sender, e);
+                }
+                else
+                {
+                    ButtonViewXamlTree_Click(sender, e);
+                }
+            }
         }
     }
 }
