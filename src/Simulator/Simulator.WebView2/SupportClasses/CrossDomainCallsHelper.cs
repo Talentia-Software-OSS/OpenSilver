@@ -21,7 +21,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using Settings = Simulator.OpenSilver.Properties.Settings;
+using Settings = Simulator.WebView2.OpenSilver.Properties.Settings;
 
 namespace DotNetForHtml5.EmulatorWithoutJavascript
 {

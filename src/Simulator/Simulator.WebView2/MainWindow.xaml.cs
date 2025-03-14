@@ -17,7 +17,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Path = System.IO.Path;
-using Settings = Simulator.OpenSilver.Properties.Settings;
+using Settings = Simulator.WebView2.OpenSilver.Properties.Settings;
 
 namespace DotNetForHtml5.EmulatorWithoutJavascript
 {

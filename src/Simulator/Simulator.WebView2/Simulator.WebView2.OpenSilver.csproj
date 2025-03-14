@@ -1,12 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net462</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
     <OutputPath>bin\OpenSilver\$(Configuration)\</OutputPath>
+    <DesignTimeBuild>false</DesignTimeBuild>
+    <AssemblyName>OpenSilver.Simulator</AssemblyName>
+    <LangVersion>10</LangVersion>
   </PropertyGroup>
 
     <ItemGroup>
@@ -60,4 +63,10 @@
         </None>
     </ItemGroup>
     
+    <!-- Remove the AssemblyInfo.cs.versioned.cs if it exists before the GenerateTemporaryTargetAssembly task-->
+    <Target Name="RemoveFile" AfterTargets="GenerateTemporaryTargetAssembly" BeforeTargets="CoreCompile">
+        <ItemGroup>
+            <Compile Remove="Properties\AssemblyInfo.cs.versioned.cs"/>
+        </ItemGroup>
+    </Target>
 </Project>

@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35707.178 d17.12
+VisualStudioVersion = 17.12.35707.178
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Runtime.OpenSilver", "Runtime\Runtime\Runtime.OpenSilver.csproj", "{945935AC-0649-4054-A3E3-9671441A3343}"
 EndProject
@@ -73,7 +73,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Expression.Effects.OpenSilv
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Blend", "Blend", "{6E2670FC-F5E6-40E4-8473-CEBE34D0456D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulator.OpenSilver", "Simulator\Simulator.WebView2\Simulator.OpenSilver.csproj", "{8D500E6C-CCA9-4A78-9DB9-5648C7B7EE81}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulator.WebView2.OpenSilver", "Simulator\Simulator.WebView2\Simulator.WebView2.OpenSilver.csproj", "{8D500E6C-CCA9-4A78-9DB9-5648C7B7EE81}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulator.OpenSilver", "Simulator\Simulator\Simulator.OpenSilver.csproj", "{BAB1B2F6-0152-4194-95A1-7D472D10B2E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -150,6 +152,10 @@ Global
 		{8D500E6C-CCA9-4A78-9DB9-5648C7B7EE81}.SL|Any CPU.Build.0 = Debug|Any CPU
 		{8D500E6C-CCA9-4A78-9DB9-5648C7B7EE81}.UWP|Any CPU.ActiveCfg = Debug|Any CPU
 		{8D500E6C-CCA9-4A78-9DB9-5648C7B7EE81}.UWP|Any CPU.Build.0 = Debug|Any CPU
+		{BAB1B2F6-0152-4194-95A1-7D472D10B2E0}.SL|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAB1B2F6-0152-4194-95A1-7D472D10B2E0}.SL|Any CPU.Build.0 = Debug|Any CPU
+		{BAB1B2F6-0152-4194-95A1-7D472D10B2E0}.UWP|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAB1B2F6-0152-4194-95A1-7D472D10B2E0}.UWP|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -178,6 +184,7 @@ Global
 		{46F93300-FC11-43F0-A974-6A515F0E6D12} = {6E2670FC-F5E6-40E4-8473-CEBE34D0456D}
 		{6E2670FC-F5E6-40E4-8473-CEBE34D0456D} = {BDA9A1B3-15CD-4068-9A6D-BDA030FBEC5E}
 		{8D500E6C-CCA9-4A78-9DB9-5648C7B7EE81} = {F3405D9A-9228-4579-97B7-6BFB11D2D582}
+		{BAB1B2F6-0152-4194-95A1-7D472D10B2E0} = {F3405D9A-9228-4579-97B7-6BFB11D2D582}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A13C12CC-0544-49D7-A852-FCE1C884AA54}
