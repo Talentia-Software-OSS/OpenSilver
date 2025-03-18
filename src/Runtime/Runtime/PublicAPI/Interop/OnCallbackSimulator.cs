@@ -39,16 +39,6 @@ namespace CSHTML5.Internal
             OnCallBackImpl.Instance.OnCallbackFromJavaScriptError(idWhereCallbackArgsAreStored);
         }
 
-        // This method can be removed later. Now it is used for easier migration from old cshtml5.js to new one
-        public object OnCallbackFromJavaScript(
-            int callbackId,
-            string idWhereCallbackArgsAreStored,
-            object callbackArgsObject)
-        {
-            return OnCallbackFromJavaScript(callbackId, idWhereCallbackArgsAreStored, callbackArgsObject,
-                false);
-        }
-
         public object OnCallbackFromJavaScript(
             int callbackId,
             string idWhereCallbackArgsAreStored,

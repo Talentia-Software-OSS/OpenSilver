@@ -18,6 +18,7 @@ using Bridge;
 using DotNetBrowser;
 #else
 using CSHTML5.Internal;
+using DotNetForHtml5.Core;
 using JSIL.Meta;
 #endif
 
@@ -98,6 +99,10 @@ namespace CSHTML5.Types
         {
             if (OpenSilver.Interop.IsRunningInTheSimulator)
             {
+                if (INTERNAL_Simulator.IsUsingWebView2Simulator)
+                {
+                    return GetActualValueSimulatorWebView2();
+                }
                 return GetActualValueSimulator();
             }
             else
@@ -201,6 +206,37 @@ namespace CSHTML5.Types
             }
         }
 
+        private object GetActualValueSimulatorWebView2()
+        {
+            object result;
+
+            if (IsArray)
+            {
+                if (Value is string s)
+                {
+                    result = s;
+                }
+                else if (Value is object[] array)
+                {
+                    result = array[ArrayIndex];
+                }
+                else
+                {
+                    throw new InvalidOperationException("Value is marked as array but is neither an object[], nor a JSArray, nor a JSObject. ReferenceId: " + (this.ReferenceId ?? "n/a"));
+                }
+            }
+            else
+            {
+                result = Value;
+            }
+
+            if (result == null)
+            {
+                return null;
+            }
+
+            return result;
+        }
         public bool IsUndefined()
         {
             var actualValue = GetActualValue();

@@ -79,6 +79,11 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
             });
         }
 
+        public string PathCombine(params string[] paths)
+        {
+            return Path.Combine(paths);
+        }
+
         internal static Dispatcher OpenSilverRuntimeDispatcher { get; private set; }
 
         internal static JavaScriptExecutionHandler JavaScriptExecutionHandler { get; private set; }

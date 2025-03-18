@@ -13,6 +13,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -40,7 +41,7 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
         readonly Thread _openSilverRuntimeThread;
         Dispatcher _openSilverRuntimeDispatcher;
         string _lastExecutedJavaScript = "";
-
+        private string _simulatorRootPath;
         const string NAME_OF_TEMP_CACHE_FOLDER = "simulator-temp-cache";
 
         //https is used because of XR# requirement to host on https.
@@ -69,6 +70,7 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
             _entryPointAssembly = appAssembly;
             _pathOfAssemblyThatContainsEntryPoint = _entryPointAssembly.Location;
             _simulatorUrl = simulatorLaunchParameters?.SimulatorUrl ?? DefaultSimulatorUrl;
+            _simulatorRootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).Replace(@"\", "/");
 
             MainWebBrowser = new WebView2
             {
@@ -333,18 +335,26 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
                 return;
             }
 
-            if (!uriString.StartsWith(_simulatorUrl))
+            // Local file
+            if (!uriString.StartsWith("file://"))
             {
-                return;
-            }
 
-            if (AreUrlsEqual(uriString, _simulatorUrl))
-            {
-                var response = environment.CreateWebResourceResponse(
-                    new MemoryStream(Encoding.UTF8.GetBytes(PrepareIndexFile())),
-                    200, "OK", GetHeaders("index.html"));
-                e.Response = response;
-                return;
+                if (!uriString.StartsWith(_simulatorUrl))
+                {
+                    return;
+                }
+
+                if (AreUrlsEqual(uriString, _simulatorUrl))
+                {
+                    var response = environment.CreateWebResourceResponse(
+                        new MemoryStream(Encoding.UTF8.GetBytes(PrepareIndexFile())),
+                        200, "OK", GetHeaders("index.html"));
+                    e.Response = response;
+                    return;
+                }
+
+                // Replace [Parent] in the URL
+                uriString = uriString.Replace(_simulatorUrl, $"file:///{_simulatorRootPath}/").Replace("[PARENT]", "..");
             }
 
             // Attempts to parse the provided URL string into a Uri object

@@ -15,6 +15,7 @@
 extern alias opensilver;
 
 using Microsoft.Web.WebView2.Wpf;
+using Simulator.WebView2.OpenSilver.Interop;
 using System.Windows.Threading;
 using INTERNAL_Simulator = opensilver::DotNetForHtml5.Core.INTERNAL_Simulator;
 
@@ -70,7 +71,7 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
 
         internal static void InjectConvertBrowserResult()
         {
-            INTERNAL_Simulator.ConvertBrowserResult = (result) => result;
+            INTERNAL_Simulator.ConvertBrowserResult = (result) => WebView2ResultConverter.ConvertBrowserResult((string)result);
         }
 
         internal static void InjectIsUsingWebView2Simulator()
