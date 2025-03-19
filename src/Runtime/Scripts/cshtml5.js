@@ -321,7 +321,7 @@ document.getCallbackArgsPrefix = function(callbackId) {
 }
 
 document.eventCallback = function (callbackId, args, sync) {
-	const argsArray = Array.prototype.slice.call(args);
+	const argsArray = args;
 	const idWhereCallbackArgsAreStored = document.getCallbackArgsPrefix(callbackId) + document.callbackCounterForSimulator++;
 	document.jsObjRef[idWhereCallbackArgsAreStored] = argsArray;
 	if (sync) {

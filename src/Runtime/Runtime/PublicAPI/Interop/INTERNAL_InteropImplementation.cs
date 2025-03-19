@@ -145,15 +145,9 @@ namespace CSHTML5
         {
             // Add the callback to the document:
             var isVoid = jsCallback.ReturnType == typeof(void);
-            return string.Format(
-                                   @"(function() {{ return document.eventCallback({0}, {1}, {2});}})", jsCallback.Id,
-#if OPENSILVER
-                                   Interop.IsRunningInTheSimulator_WorkAround ? "arguments" : "Array.prototype.slice.call(arguments)",
-#elif BRIDGE
-                                       "Array.prototype.slice.call(arguments)",
-#endif
-                                   (!isVoid).ToString().ToLower()
-                                   );
+            return string.Format(@"(function() {{ return document.eventCallback({0}, {1}, {2});}})", jsCallback.Id,
+                                 "Array.prototype.slice.call(arguments)",
+                                 (!isVoid).ToString().ToLower());
         }
 
 
