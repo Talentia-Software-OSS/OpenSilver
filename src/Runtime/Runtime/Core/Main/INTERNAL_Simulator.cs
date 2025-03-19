@@ -16,6 +16,7 @@
 using CSHTML5.Internal;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -212,5 +213,26 @@ namespace DotNetForHtml5.Core
         public static Func<object, object> ConvertBrowserResult { get; set; }
 
         public static bool IsUsingWebView2Simulator { get; set; }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static Action<Action, TimeSpan> OpenSilverDispatcherInvoke
+        {
+            set;
+            internal get;
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static Action<Action> OpenSilverDispatcherBeginInvoke
+        {
+            set;
+            internal get;
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static Func<bool> OpenSilverDispatcherCheckAccess
+        {
+            get;
+            set;
+        }
     }
 }

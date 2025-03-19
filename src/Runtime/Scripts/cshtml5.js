@@ -320,8 +320,8 @@ document.getCallbackArgsPrefix = function(callbackId) {
     return "callback_args_" + callbackId + "_";
 }
 
-document.eventCallback = function (callbackId, arguments, sync) {
-	const argsArray = arguments;
+document.eventCallback = function (callbackId, args, sync) {
+	const argsArray = Array.prototype.slice.call(args);
 	const idWhereCallbackArgsAreStored = document.getCallbackArgsPrefix(callbackId) + document.callbackCounterForSimulator++;
 	document.jsObjRef[idWhereCallbackArgsAreStored] = argsArray;
 	if (sync) {

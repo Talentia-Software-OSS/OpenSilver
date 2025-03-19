@@ -133,13 +133,15 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
             if (CrossDomainCallsHelper.IsBypassCORSErrors)
             {
                 chromiumSwitches.Add(@"--disable-web-security");
+                chromiumSwitches.Add(@"--disable-site-isolation-trials");
             }
 
             chromiumSwitches.AddRange(new[] {
                 @"--disable-web-security",
                 @"--allow-file-access-from-files",
                 @"--allow-file-access",
-                @"--remote-debugging-port=9222"
+                @"--remote-debugging-port=9222",
+                @"--disable-site-isolation-trials"
             });
 
             CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(null, _browserUserDataDir,
@@ -679,7 +681,7 @@ Click OK to continue.";
             const string name = "onCallBack";
             await Dispatcher.InvokeAsync(() =>
             {
-                MainWebBrowser.CoreWebView2.AddHostObjectToScript(name, new opensilver::CSHTML5.Internal.OnCallbackSimulator());
+                MainWebBrowser.CoreWebView2.AddHostObjectToScript(name, new OnCallbackSimulator2());
                 _javaScriptExecutionHandler.ExecuteJavaScript($"window.onCallBack = chrome.webview.hostObjects.{name};");
 
                 MainWebBrowser.CoreWebView2.AddHostObjectToScript("XamlInspectorCallback", new XamlInspectorCallback());

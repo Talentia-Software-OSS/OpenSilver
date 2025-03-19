@@ -59,9 +59,9 @@ namespace DotNetForHtml5.EmulatorWithoutJavascript
 
         internal static void InjectOpenSilverRuntimeDispatcher(Dispatcher dispatcher)
         {
-            //INTERNAL_Simulator.OpenSilverDispatcherBeginInvoke = (method) => dispatcher.BeginInvoke(method);
-            //INTERNAL_Simulator.OpenSilverDispatcherInvoke = (method, timeout) => dispatcher.Invoke(method, timeout);
-            //INTERNAL_Simulator.OpenSilverDispatcherCheckAccess = () => dispatcher.CheckAccess();
+            INTERNAL_Simulator.OpenSilverDispatcherBeginInvoke = (method) => dispatcher.BeginInvoke(method);
+            INTERNAL_Simulator.OpenSilverDispatcherInvoke = (method, timeout) => dispatcher.Invoke(method, timeout);
+            INTERNAL_Simulator.OpenSilverDispatcherCheckAccess = () => dispatcher.CheckAccess();
         }
 
         internal static void InjectCodeToDisplayTheMessageBox(Func<string, string, bool, bool> codeToShowTheMessageBoxWithTitleAndButtons)
